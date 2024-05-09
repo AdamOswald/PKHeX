@@ -176,8 +176,8 @@ public sealed class LegalityAnalysis
 
     private int GetParseFormat()
     {
-        int gen = Entity.Generation;
-        if (gen > 0)
+        var gen = Entity.Generation;
+        if (gen != 0)
             return gen;
         if (Entity is PK9 { IsUnhatchedEgg: true })
             return 9;
@@ -191,6 +191,7 @@ public sealed class LegalityAnalysis
         Level.VerifyG1(this);
         Trainer.VerifyOTGB(this);
         MiscValues.VerifyMiscG1(this);
+        MovePP.Verify(this);
         if (Entity.Format == 2)
             Item.Verify(this);
     }
@@ -201,7 +202,7 @@ public sealed class LegalityAnalysis
         if (Entity.Format > 3)
             Transfer.VerifyTransferLegalityG3(this);
 
-        if (Entity.Version == (int)GameVersion.CXD)
+        if (Entity.Version == GameVersion.CXD)
             CXD.Verify(this);
 
         if (Info.EncounterMatch is WC3 {NotDistributed: true})
@@ -298,6 +299,7 @@ public sealed class LegalityAnalysis
         BallIndex.Verify(this);
         FormValues.Verify(this);
         MiscValues.Verify(this);
+        MovePP.Verify(this);
         GenderValues.Verify(this);
         Item.Verify(this);
         Contest.Verify(this);

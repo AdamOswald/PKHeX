@@ -1,4 +1,5 @@
 using System;
+using static PKHeX.Core.SlotType2;
 
 namespace PKHeX.Core;
 
@@ -11,33 +12,30 @@ namespace PKHeX.Core;
 public sealed record EncounterSlot2(EncounterArea2 Parent, ushort Species, byte Form, byte LevelMin, byte LevelMax, byte SlotNumber)
     : IEncounterable, IEncounterMatch, IEncounterConvertible<PK2>, INumberedSlot, IEncounterFormRandom
 {
-    public int Generation => 2;
+    public byte Generation => 2;
     public EntityContext Context => EntityContext.Gen2;
-    public bool EggEncounter => false;
+    public bool IsEgg => false;
     public Ball FixedBall => Ball.Poke;
     public AbilityPermission Ability => TransporterLogic.IsHiddenDisallowedVC2(Species) ? AbilityPermission.OnlyFirst : AbilityPermission.OnlyHidden;
     public Shiny Shiny => Shiny.Random;
     public bool IsShiny => false;
-    public int EggLocation => 0;
-    public bool IsRandomUnspecificForm => Form >= EncounterUtil1.FormDynamic;
+    public ushort EggLocation => 0;
+    public bool IsRandomUnspecificForm => Form >= EncounterUtil.FormDynamic;
 
     public string Name => $"Wild Encounter ({Version})";
     public string LongName => $"{Name} {Type.ToString().Replace('_', ' ')}";
     public GameVersion Version => Parent.Version;
-    public int Location => Parent.Location;
-    public SlotType Type => Parent.Type;
+    public ushort Location => Parent.Location;
+    public SlotType2 Type => Parent.Type;
+    public bool IsHeadbutt => Type is Headbutt or HeadbuttSpecial;
 
-    // we have "Special" bitflag. Strip it out.
-    public SlotType SlotType => Type & (SlotType)0xF;
-    public bool IsHeadbutt => SlotType == SlotType.Headbutt;
-
-    private static ReadOnlySpan<byte> TreeIndexes => new byte[]
-    {
+    private static ReadOnlySpan<byte> TreeIndexes =>
+    [
         02, 04, 05, 08, 11, 12, 14, 15, 18, 20, 21, 25, 26, 34, 37, 38, 39, 91, 92,
-    };
+    ];
 
-    private static ReadOnlySpan<int> Trees => new[]
-    {
+    private static ReadOnlySpan<int> Trees =>
+    [
         0x3FF_3FF, // Route 29
         0x0FF_3FF, // Route 30
         0x3FE_3FF, // Route 31
@@ -57,7 +55,7 @@ public sealed record EncounterSlot2(EncounterArea2 Parent, ushort Species, byte 
         0x2FF_3FF, // Route 44
         0x200_1FF, // Route 26
         0x2BB_3FF, // Route 27
-    };
+    ];
 
     public bool IsTreeAvailable(ushort trainerID)
     {
@@ -69,7 +67,7 @@ public sealed record EncounterSlot2(EncounterArea2 Parent, ushort Species, byte 
         var pivot = trainerID % 10;
         return Type switch
         {
-            SlotType.Headbutt => (permissions & (1 << pivot)) != 0,
+            Headbutt => (permissions & (1 << pivot)) != 0,
             /*special*/ _ => (permissions & (1 << (pivot + 12))) != 0,
         };
     }
@@ -90,24 +88,24 @@ public sealed record EncounterSlot2(EncounterArea2 Parent, ushort Species, byte 
             Species = Species,
             // Form is only Unown and is derived from IVs.
             CurrentLevel = LevelMin,
-            OT_Friendship = pi.BaseFriendship,
-            DV16 = EncounterUtil1.GetRandomDVs(Util.Rand),
+            OriginalTrainerFriendship = pi.BaseFriendship,
+            DV16 = EncounterUtil.GetRandomDVs(Util.Rand),
 
             Language = lang,
-            OT_Name = tr.OT,
+            OriginalTrainerName = tr.OT,
             TID16 = tr.TID16,
             Nickname = SpeciesName.GetSpeciesNameGeneration(Species, lang, Generation),
         };
 
         if (Version == GameVersion.C)
         {
-            pk.OT_Gender = tr.Gender;
-            pk.Met_Level = LevelMin;
-            pk.Met_Location = Location;
-            pk.Met_TimeOfDay = GetRandomTime();
+            pk.OriginalTrainerGender = tr.Gender;
+            pk.MetLevel = LevelMin;
+            pk.MetLocation = Location;
+            pk.MetTimeOfDay = GetRandomTime();
         }
 
-        EncounterUtil1.SetEncounterMoves(pk, Version, LevelMin);
+        EncounterUtil.SetEncounterMoves(pk, Version, LevelMin);
         if (IsHeadbutt)
         {
             var id = pk.TID16;
@@ -141,9 +139,9 @@ public sealed record EncounterSlot2(EncounterArea2 Parent, ushort Species, byte 
         if (pk is not ICaughtData2 {CaughtData: not 0} c2)
             return LevelMin <= evo.LevelMax;
 
-        if (!this.IsLevelWithinRange(c2.Met_Level))
+        if (!this.IsLevelWithinRange(c2.MetLevel))
             return false;
-        if (!Parent.Time.Contains(c2.Met_TimeOfDay))
+        if (!Parent.Time.Contains(c2.MetTimeOfDay))
             return false;
         return true;
     }

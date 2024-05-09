@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using PKHeX.Core;
+using PKHeX.WinForms.Controls;
 
 namespace PKHeX.WinForms
 {
@@ -15,7 +16,7 @@ namespace PKHeX.WinForms
             t.DropDownItems.Add(GetTranslationUpdater());
         }
 
-        private static readonly string[] Languages = {"ja", "fr", "it", "de", "es", "ko", "zh", "zh2"};
+        private static readonly string[] Languages = ["ja", "fr", "it", "de", "es", "ko", "zh", "zh2"];
         private const string DefaultLanguage = GameLanguage.DefaultLanguage;
 
         public static bool IsUpdatingTranslations { get; private set; }
@@ -86,19 +87,20 @@ namespace PKHeX.WinForms
 
         private static IEnumerable<Control> GetExtraControls()
         {
-            var slotGroupLabels = Enum.GetNames(typeof(StorageSlotType));
+            var slotGroupLabels = Enum.GetNames<StorageSlotType>();
             foreach (var name in slotGroupLabels)
                 yield return new Label { Name = $"{nameof(Main)}.L_{name}", Text = name };
         }
 
         private static readonly string[] LoadBanlist =
-        {
+        [
             nameof(SplashScreen),
-        };
+            nameof(PokePreview),
+        ];
 
         private static readonly string[] Banlist =
-        {
-            nameof(SplashScreen),
+        [
+            ..LoadBanlist,
             "Gender=", // editor gender labels
             "BTN_Shinytize", // ☆
             "Hidden_", // Hidden controls
@@ -114,14 +116,15 @@ namespace PKHeX.WinForms
             $"{nameof(SAV_GameSelect)}.L_Prompt", // prompt text (dynamic)
             $"{nameof(SAV_BlockDump8)}.L_BlockName", // Block name (dynamic)
             $"{nameof(SAV_PokedexResearchEditorLA)}.L_", // Dynamic label
-        };
+            $"{nameof(SAV_OPower)}.L_", // Dynamic label
+        ];
 
         private static readonly string[] PurgeBanlist =
-        {
+        [
             nameof(SuperTrainingEditor),
             nameof(ErrorWindow),
             nameof(SettingsEditor),
-        };
+        ];
 
         private static void DumpStringsMessage() => DumpStrings(typeof(MessageStrings), false, "PKHeX.Core", "Resources", "text", "program");
         private static void DumpStringsLegality() => DumpStrings(typeof(LegalityCheckStrings), true, "PKHeX.Core", "Resources", "legality", "checks");
@@ -129,27 +132,30 @@ namespace PKHeX.WinForms
         private static void DumpStrings(Type t, bool sorted, params string[] rel)
         {
             var dir = GetResourcePath(rel);
-            var langs = new[] {DefaultLanguage}.Concat(Languages);
-            foreach (var lang in langs)
+            DumpStrings(t, sorted, DefaultLanguage, dir);
+            foreach (var lang in Languages)
+                DumpStrings(t, sorted, lang, dir);
+        }
+
+        private static void DumpStrings(Type t, bool sorted, string lang, string dir)
+        {
+            LocalizationUtil.SetLocalization(t, lang);
+            var entries = LocalizationUtil.GetLocalization(t);
+            IEnumerable<string> export = entries.OrderBy(GetName); // sorted lines
+
+            if (!sorted)
+                export = entries;
+
+            var location = GetFileLocationInText(t.Name, dir, lang);
+            File.WriteAllLines(location, export);
+            LocalizationUtil.SetLocalization(t, DefaultLanguage);
+
+            static string GetName(string line)
             {
-                LocalizationUtil.SetLocalization(t, lang);
-                var entries = LocalizationUtil.GetLocalization(t);
-                IEnumerable<string> export = entries.OrderBy(GetName); // sorted lines
-
-                static string GetName(string line)
-                {
-                    var index = line.IndexOf('=');
-                    if (index == -1)
-                        return line;
-                    return line[..index];
-                }
-
-                if (!sorted)
-                    export = entries;
-
-                var location = GetFileLocationInText(t.Name, dir, lang);
-                File.WriteAllLines(location, export);
-                LocalizationUtil.SetLocalization(t, DefaultLanguage);
+                var index = line.IndexOf('=');
+                if (index == -1)
+                    return line;
+                return line[..index];
             }
         }
 

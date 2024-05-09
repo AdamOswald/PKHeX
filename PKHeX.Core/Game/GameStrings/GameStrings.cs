@@ -42,14 +42,14 @@ public sealed class GameStrings : IBasicStrings
     /// <summary>
     /// Item IDs that correspond to the <see cref="Ball"/> value.
     /// </summary>
-    private static ReadOnlySpan<ushort> Items_Ball => new ushort[]
-    {
+    private static ReadOnlySpan<ushort> Items_Ball =>
+    [
         0000, 0001, 0002, 0003, 0004, 0005, 0006, 0007, 0008, 0009,
         0010, 0011, 0012, 0013, 0014, 0015, 0016, 0492, 0493, 0494,
         0495, 0496, 0497, 0498, 0499, 0576, 0851,
         1785, 1710, 1711,
         1712, 1713, 1746, 1747, 1748, 1749, 1750, 1771,
-    };
+    ];
 
     internal GameStrings(string l)
     {
@@ -128,7 +128,7 @@ public sealed class GameStrings : IBasicStrings
 
         Sanitize();
 
-        g4items = (string[])itemlist.Clone();
+        g4items = [..itemlist];
         Get("mail4").CopyTo(g4items, 137);
     }
 
@@ -298,6 +298,11 @@ public sealed class GameStrings : IBasicStrings
 
         items[2418] += " (SL)"; // Academy Chairs
         items[2419] += " (VL)"; // Academy Chairs
+
+        items[1834] += " (1)"; // Scarlet Book
+        items[1835] += " (1)"; // Violet Book
+        items[2555] += " (2)"; // Scarlet Book
+        items[2556] += " (2)"; // Violet Book
     }
 
     private static void SanitizeItemsLA(string[] items)
@@ -398,11 +403,11 @@ public sealed class GameStrings : IBasicStrings
 
     private void SanitizeMetGen4(LocationSet4 set)
     {
-        set.Met0[054] += " (DP/Pt)"; // Victory Road
+        set.Met0[054] += " (D/P/Pt)"; // Victory Road
         set.Met0[221] += " (HG/SS)"; // Victory Road
 
         // German language duplicate; handle for all since it can be confused.
-        set.Met0[104] += " (DP/Pt)"; // Vista Lighthouse
+        set.Met0[104] += " (D/P/Pt)"; // Vista Lighthouse
         set.Met0[212] += " (HG/SS)"; // Lighthouse
 
         set.Met2[1] += $" ({NPC})";     // Anything from an NPC
@@ -411,10 +416,10 @@ public sealed class GameStrings : IBasicStrings
 
     private void SanitizeMetGen5(LocationSet6 set)
     {
-        set.Met0[36] = $"{set.Met0[84]}/{set.Met0[36]}"; // Cold Storage in BW = PWT in BW2
-        set.Met0[40] += " (B/W)"; // Victory Road in BW
-        set.Met0[134] += " (B2/W2)"; // Victory Road in B2W2
-        // BW2 Entries from 76 to 105 are for Entralink in BW
+        set.Met0[36] = $"{set.Met0[84]}/{set.Met0[36]}"; // Cold Storage in B/W = PWT in B2/W2
+        set.Met0[40] += " (B/W)"; // Victory Road in B/W
+        set.Met0[134] += " (B2/W2)"; // Victory Road in B2/W2
+        // B2/W2 Entries from 76 to 105 are for Entralink in B/W
         for (int i = 76; i < 106; i++)
             set.Met0[i] += "●";
 
@@ -513,7 +518,7 @@ public sealed class GameStrings : IBasicStrings
 
         for (int i = 55; i < 61; i++) // distinguish Event year duplicates
             set.Met4[i] += " (-)";
-        set.Met4[30] += " (-)"; // a Video game Event (in spanish etc) -- duplicate with line 39
+        set.Met4[30] += " (-)"; // a Video game Event (in spanish etc.) -- duplicate with line 39
         set.Met4[53] += " (-)"; // a Pokémon event -- duplicate with line 37
 
         set.Met4[81] += " (-)"; // Pokémon GO -- duplicate with 30000's entry
@@ -542,7 +547,7 @@ public sealed class GameStrings : IBasicStrings
             set.Met3[i] += " (-)";
         set.Met3[19] += " (?)"; // Kanto for the third time
 
-        set.Met4[30] += " (-)"; // a Video game Event (in spanish etc) -- duplicate with line 39
+        set.Met4[30] += " (-)"; // a Video game Event (in spanish etc.) -- duplicate with line 39
         set.Met4[53] += " (-)"; // a Pokémon event -- duplicate with line 37
 
         set.Met4[81] += " (-)"; // Pokémon GO -- duplicate with 30000's entry
@@ -613,6 +618,9 @@ public sealed class GameStrings : IBasicStrings
         m[164] += " (1)"; // Kitakami Wilds
         m[167] += " (2)"; // Kitakami Wilds
 
+        m[196] += " (1)"; // Area Zero Underdepths
+        m[198] += " (2)"; // Area Zero Underdepths
+
         set.Met3[1] += $" ({NPC})";      // Anything from an NPC
         set.Met3[2] += $" ({EggName})";  // Egg From Link Trade
         for (int i = 3; i <= 6; i++) // distinguish first set of regions (unused) from second (used)
@@ -622,7 +630,7 @@ public sealed class GameStrings : IBasicStrings
         for (int i = 49; i <= 54; i++) // distinguish Event year duplicates
             set.Met4[i] += " (-)";
 
-        set.Met4[27] += " (-)"; // a Video game Event (in spanish etc) -- duplicate with line 36
+        set.Met4[27] += " (-)"; // a Video game Event (in spanish etc.) -- duplicate with line 36
         set.Met4[48] += " (-)"; // a Pokémon event -- duplicate with line 34
 
         set.Met4[73] += " (-)"; // Pokémon GO -- duplicate with 30000's entry
@@ -731,13 +739,13 @@ public sealed class GameStrings : IBasicStrings
     /// <summary>
     /// Gets the location name for the specified parameters.
     /// </summary>
-    /// <param name="isEggLocation">Location is from the <see cref="PKM.Egg_Location"/></param>
+    /// <param name="isEggLocation">Location is from the <see cref="PKM.EggLocation"/></param>
     /// <param name="location">Location value</param>
     /// <param name="format">Current <see cref="PKM.Format"/></param>
     /// <param name="generation"><see cref="PKM.Generation"/> of origin</param>
     /// <param name="version">Current GameVersion (only applicable for <see cref="GameVersion.Gen7b"/> differentiation)</param>
-    /// <returns>Location name. May be an empty string if no location name is known for that location value.</returns>
-    public string GetLocationName(bool isEggLocation, int location, int format, int generation, GameVersion version)
+    /// <returns>Location name. Potentially an empty string if no location name is known for that location value.</returns>
+    public string GetLocationName(bool isEggLocation, ushort location, byte format, byte generation, GameVersion version)
     {
         if (format == 1)
         {
@@ -754,7 +762,7 @@ public sealed class GameStrings : IBasicStrings
         return set.GetLocationName(location);
     }
 
-    private static int GetGeneration(int generation, bool isEggLocation, int format)
+    private static byte GetGeneration(byte generation, bool isEggLocation, byte format)
     {
         if (format == 2)
             return 2;
@@ -766,19 +774,19 @@ public sealed class GameStrings : IBasicStrings
             return generation;
         if (format >= 5)
             return format;
-        return -1; // Nonsensical inputs.
+        return 0; // Nonsensical inputs.
     }
 
     /// <summary>
     /// Gets the location names array for a specified generation.
     /// </summary>
-    /// <param name="gen">Generation to get location names for.</param>
+    /// <param name="generation">Generation to get location names for.</param>
     /// <param name="version">Version of origin</param>
     /// <returns>List of location names.</returns>
-    public ILocationSet? GetLocations(int gen, GameVersion version) => gen switch
+    public ILocationSet? GetLocations(byte generation, GameVersion version) => generation switch
     {
         2 => Gen2,
-        3 => GameVersion.CXD.Contains(version) ? CXD : Gen3,
+        3 => version is (GameVersion.COLO or GameVersion.XD or GameVersion.CXD) ? CXD : Gen3,
         4 => Gen4,
         5 => Gen5,
         6 => Gen6,
@@ -795,15 +803,15 @@ public sealed class GameStrings : IBasicStrings
     /// <summary>
     /// Gets the location names array for a specified generation.
     /// </summary>
-    /// <param name="gen">Generation to get location names for.</param>
+    /// <param name="generation">Generation to get location names for.</param>
     /// <param name="version">Version of origin</param>
     /// <param name="bankID">BankID used to choose the text bank.</param>
     /// <returns>List of location names.</returns>
-    public ReadOnlySpan<string> GetLocationNames(int gen, GameVersion version, int bankID = 0)
+    public ReadOnlySpan<string> GetLocationNames(byte generation, GameVersion version, int bankID = 0)
     {
-        var set = GetLocations(gen, version);
+        var set = GetLocations(generation, version);
         if (set is null)
-            return Array.Empty<string>();
+            return [];
         return set.GetLocationNames(bankID);
     }
 }

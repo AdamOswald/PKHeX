@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using static System.Buffers.Binary.BinaryPrimitives;
 
 namespace PKHeX.Core;
@@ -6,15 +7,15 @@ namespace PKHeX.Core;
 /// <summary>
 /// Abstract <see cref="SaveFile"/> format for <see cref="GameVersion.DP"/> and <see cref="GameVersion.Pt"/>
 /// </summary>
-public abstract class SAV4Sinnoh : SAV4
+public abstract class SAV4Sinnoh : SAV4, IBoxDetailName, IBoxDetailWallpaper
 {
     protected override int FooterSize => 0x14;
-    protected SAV4Sinnoh(int gSize, int sSize) : base(gSize, sSize) { }
-    protected SAV4Sinnoh(byte[] data, int gSize, int sSize, int sStart) : base(data, gSize, sSize, sStart) { }
+    protected SAV4Sinnoh([ConstantExpected] int gSize, [ConstantExpected] int sSize) : base(gSize, sSize) { }
+    protected SAV4Sinnoh(byte[] data, [ConstantExpected] int gSize, [ConstantExpected] int sSize, [ConstantExpected] int sStart) : base(data, gSize, sSize, sStart) { }
 
     #region Storage
     // u32 currentBox
-    // box{pk4[30}[18]
+    // box{pk4[30][18]}
     // g4str[18] boxNames
     // byte[18] boxWallpapers
     private const int BOX_COUNT = 18;
@@ -29,7 +30,7 @@ public abstract class SAV4Sinnoh : SAV4
 
     public override int GetBoxOffset(int box) => 4 + (box * BOX_DATA_LEN);
     private static int GetBoxNameOffset(int box) => BOX_NAME + (box * BOX_NAME_LEN);
-    protected override int GetBoxWallpaperOffset(int box) => BOX_WP + box;
+    protected static int GetBoxWallpaperOffset(int box) => BOX_WP + box;
 
     public override int CurrentBox // (align 32)
     {
@@ -39,19 +40,21 @@ public abstract class SAV4Sinnoh : SAV4
 
     public override byte[] BoxFlags
     {
-        get => new[] { Storage[BOX_FLAGS] };
+        get => [ Storage [BOX_FLAGS] ];
         set => Storage[BOX_FLAGS] = value[0];
     }
 
     private Span<byte> GetBoxNameSpan(int box) => Storage.Slice(GetBoxNameOffset(box), BOX_NAME_LEN);
-    public override string GetBoxName(int box) => GetString(GetBoxNameSpan(box));
+    public string GetBoxName(int box) => GetString(GetBoxNameSpan(box));
 
-    public override void SetBoxName(int box, ReadOnlySpan<char> value)
+    public void SetBoxName(int box, ReadOnlySpan<char> value)
     {
         const int maxlen = 8;
         var span = GetBoxNameSpan(box);
         SetString(span, value, maxlen, StringConverterOption.ClearZero);
     }
+    public abstract int GetBoxWallpaper(int box);
+    public abstract void SetBoxWallpaper(int box, int value);
     #endregion
 
     #region Poketch
@@ -152,7 +155,6 @@ public abstract class SAV4Sinnoh : SAV4
     /// <summary>
     /// First 40 are the sphere type, last 40 are the sphere sizes
     /// </summary>
-    /// <returns></returns>
     public Span<byte> GetUGI_Spheres() => General.Slice(OFS_UG_Items + 0x78, UG_POUCH_SIZE * 2);
 
     #endregion
@@ -166,45 +168,4 @@ public abstract class SAV4Sinnoh : SAV4
 
     public ushort GetHoneyTreeSpecies(int group, int index) =>
         TreeSpecies.Slice(group * GroupEntryCount, GroupEntryCount)[index];
-}
-
-public enum PoketchColor
-{
-    Green = 0,
-    Yellow = 1,
-    Orange = 2,
-    Red = 3,
-    Purple = 4,
-    Blue = 5,
-    Turquoise = 6,
-    White = 7,
-}
-
-public enum PoketchApp
-{
-    Digital_Watch,
-    Calculator,
-    Memo_Pad,
-    Pedometer,
-    Party,
-    Friendship_Checker,
-    Dowsing_Machine,
-    Berry_Searcher,
-    Daycare,
-    History,
-    Counter,
-    Analog_Watch,
-    Marking_Map,
-    Link_Searcher,
-    Coin_Toss,
-    Move_Tester,
-    Calendar,
-    Dot_Artist,
-    Roulette,
-    Trainer_Counter,
-    Kitchen_Timer,
-    Color_Changer,
-    Matchup_Checker,
-    Stopwatch,
-    Alarm_Clock,
 }

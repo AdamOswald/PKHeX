@@ -10,9 +10,6 @@ public sealed class EffortValueVerifier : Verifier
 {
     protected override CheckIdentifier Identifier => CheckIdentifier.EVs;
 
-    private const int totalMax = 510; // Total Max
-    private const int vitaMax = 100; // Vitamin Max for consideration in Gen3 & Gen4.
-
     public override void Verify(LegalityAnalysis data)
     {
         var pk = data.Entity;
@@ -23,19 +20,20 @@ public sealed class EffortValueVerifier : Verifier
             return;
         }
 
-        // In Generations I and II, when a Pokémon is taken out of the Day Care, its experience will lower to the minimum value for its current level.
-        int format = pk.Format;
-        if (format < 3) // can abuse daycare for EV training without EXP gain
+        // In Generation 1 & 2, when a Pokémon is taken out of the Day Care, its experience will lower to the minimum value for its current level.
+        byte format = pk.Format;
+        if (format < 3) // Can abuse daycare for EV training without EXP gain
             return;
 
         int sum = pk.EVTotal;
-        if (sum > totalMax) // format >= 3
+        if (sum > EffortValues.Max510) // format >= 3
             data.AddLine(GetInvalid(LEffortAbove510));
 
         var enc = data.EncounterMatch;
         Span<int> evs = stackalloc int[6];
         pk.GetEVs(evs);
-        if (format >= 6 && evs.IndexOfAny(253, 254, 255) != -1)
+
+        if (format >= 6 && IsAnyAboveHardLimit6(evs))
             data.AddLine(GetInvalid(LEffortAbove252));
         else if (format < 5) // 3/4
             VerifyGainedEVs34(data, enc, evs, pk);
@@ -45,13 +43,13 @@ public sealed class EffortValueVerifier : Verifier
             data.AddLine(Get(LEffortEXPIncreased, Severity.Fishy));
         else if (sum == EffortValues.MaxEffective)
             data.AddLine(Get(LEffort2Remaining, Severity.Fishy));
-        else if (evs[0] != 0 && evs.IndexOfAnyExcept(evs[0]) == -1)
+        else if (evs[0] != 0 && !evs.ContainsAnyExcept(evs[0]))
             data.AddLine(Get(LEffortAllEqual, Severity.Fishy));
     }
 
-    private void VerifyGainedEVs34(LegalityAnalysis data, IEncounterTemplate enc, Span<int> evs, PKM pk)
+    private void VerifyGainedEVs34(LegalityAnalysis data, IEncounterTemplate enc, ReadOnlySpan<int> evs, PKM pk)
     {
-        bool anyAbove100 = evs.Find(static ev => ev > vitaMax) != default;
+        bool anyAbove100 = IsAnyAboveVitaminLimit(evs);
         if (!anyAbove100)
             return;
 
@@ -61,12 +59,26 @@ public sealed class EffortValueVerifier : Verifier
             // EVs can only be increased by vitamins to a max of 100.
             data.AddLine(GetInvalid(LEffortCap100));
         }
-        else // Check for gained EVs without gaining EXP -- don't check gen5+ which have wings to boost above 100.
+        else // Check for gained EVs without gaining EXP -- don't check Gen5+ which have wings to boost above 100.
         {
             var growth = PersonalTable.HGSS[enc.Species].EXPGrowth;
             var baseEXP = Experience.GetEXP(enc.LevelMin, growth);
             if (baseEXP == pk.EXP)
-                data.AddLine(GetInvalid(string.Format(LEffortUntrainedCap, vitaMax)));
+                data.AddLine(GetInvalid(string.Format(LEffortUntrainedCap, EffortValues.MaxVitamins34)));
         }
+    }
+
+    // Hard cap at 252 for Gen6+
+    private static bool IsAnyAboveHardLimit6(ReadOnlySpan<int> evs) => evs.ContainsAny(253, 254, 255);
+
+    // Vitamins can only raise to 100 in Gen3/4
+    private static bool IsAnyAboveVitaminLimit(ReadOnlySpan<int> evs)
+    {
+        foreach (var iv in evs)
+        {
+            if (iv > EffortValues.MaxVitamins34)
+                return true;
+        }
+        return false;
     }
 }

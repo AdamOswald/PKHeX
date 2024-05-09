@@ -12,7 +12,7 @@ namespace PKHeX.WinForms.Controls;
 
 public partial class BoxEditor : UserControl, ISlotViewer<PictureBox>
 {
-    public IList<PictureBox> SlotPictureBoxes { get; private set; } = Array.Empty<PictureBox>();
+    public IList<PictureBox> SlotPictureBoxes { get; private set; } = [];
     public SaveFile SAV => M?.SE.SAV ?? throw new ArgumentNullException(nameof(SAV));
 
     public int BoxSlotCount { get; private set; }
@@ -180,11 +180,11 @@ public partial class BoxEditor : UserControl, ISlotViewer<PictureBox>
             CurrentBox = box;
     }
 
-    private static bool GetIsSame(IReadOnlyList<string> a, IList b)
+    private static bool GetIsSame(ReadOnlySpan<string> a, IList b)
     {
-        if (a.Count != b.Count)
+        if (a.Length != b.Count)
             return false;
-        for (int i = 0; i < a.Count; i++)
+        for (int i = 0; i < a.Length; i++)
         {
             if (b[i] is not string s || s != a[i])
                 return false;

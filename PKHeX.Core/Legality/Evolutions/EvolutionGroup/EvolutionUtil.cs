@@ -42,7 +42,7 @@ internal static class EvolutionUtil
     private static EvoCriteria[] GetLocalEvolutionArray(Span<EvoCriteria> result)
     {
         if (result.Length == 0)
-            return Array.Empty<EvoCriteria>();
+            return [];
 
         var array = result.ToArray();
         var length = CleanEvolve(array);
@@ -162,5 +162,17 @@ internal static class EvolutionUtil
             evo = evo with { LevelMax = newMax };
         }
         return i;
+    }
+
+    public static void ConditionEncounterNoMet(Span<EvoCriteria> chain)
+    {
+        // Allow for under-leveled evolutions for purposes of finding an under-leveled evolved encounter.
+        // e.g. a level 5 Silcoon encounter slot (normally needs level 7).
+        for (int i = 0; i < chain.Length - 1; i++)
+        {
+            ref var evo = ref chain[i];
+            if (evo.Method.IsLevelUpRequired())
+                evo = evo with { LevelMin = (byte)(chain[i + 1].LevelMin + evo.LevelUpRequired) };
+        }
     }
 }

@@ -24,7 +24,7 @@ public sealed class EncounterGenerator2 : IEncounterGenerator
     {
         var chain = EncounterOrigin.GetOriginChain12(pk, game);
         if (chain.Length == 0)
-            return Array.Empty<IEncounterable>();
+            return [];
         return GetEncounters(pk, chain);
     }
 
@@ -35,7 +35,7 @@ public sealed class EncounterGenerator2 : IEncounterGenerator
             yield return enc.Encounter;
     }
 
-    private const int Generation = 2;
+    private const byte Generation = 2;
     private const EntityContext Context = EntityContext.Gen2;
     private const byte EggLevel = 5;
 

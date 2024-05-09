@@ -7,7 +7,7 @@ namespace PKHeX.Core;
 /// Contains logic for the Generation 8b (BD/SP) roaming spawns.
 /// </summary>
 /// <remarks>
-/// Roaming encounters use the pokemon's 32-bit <see cref="PKM.EncryptionConstant"/> as RNG seed.
+/// Roaming encounters use the Pokémon's 32-bit <see cref="PKM.EncryptionConstant"/> as RNG seed.
 /// </remarks>
 public static class Roaming8bRNG
 {
@@ -19,6 +19,10 @@ public static class Roaming8bRNG
             shiny = criteria.Shiny is Shiny.Random or Shiny.Never ? Shiny.Never : criteria.Shiny;
         if (flawless == -1)
             flawless = 0;
+
+        // Since the inner methods do not set Gender (only fixed Genders are applicable) and Nature (assume Synchronize used), set them here.
+        pk.Gender = (byte)(pk.Species == (int)Species.Cresselia ? 1 : 2); // Mesprit
+        pk.Nature = pk.StatNature = criteria.GetNature();
 
         int ctr = 0;
         var rnd = Util.Rand;
@@ -64,7 +68,7 @@ public static class Roaming8bRNG
         pk.PID = pid;
 
         // Check IVs: Create flawless IVs at random indexes, then the random IVs for not flawless.
-        Span<int> ivs = stackalloc [] { UNSET, UNSET, UNSET, UNSET, UNSET, UNSET };
+        Span<int> ivs = [UNSET, UNSET, UNSET, UNSET, UNSET, UNSET];
         const int MAX = 31;
         var determined = 0;
         while (determined < flawless)
@@ -97,8 +101,8 @@ public static class Roaming8bRNG
 
         // Remainder
         var scale = (IScaledSize)pk;
-        scale.HeightScalar = (byte)((int)xoro.NextUInt(0x81) + (int)xoro.NextUInt(0x80));
-        scale.WeightScalar = (byte)((int)xoro.NextUInt(0x81) + (int)xoro.NextUInt(0x80));
+        scale.HeightScalar = (byte)(xoro.NextUInt(0x81) + xoro.NextUInt(0x80));
+        scale.WeightScalar = (byte)(xoro.NextUInt(0x81) + xoro.NextUInt(0x80));
 
         return true;
     }
@@ -118,7 +122,7 @@ public static class Roaming8bRNG
             return false;
 
         // Check IVs: Create flawless IVs at random indexes, then the random IVs for not flawless.
-        Span<int> ivs = stackalloc [] { UNSET, UNSET, UNSET, UNSET, UNSET, UNSET };
+        Span<int> ivs = [UNSET, UNSET, UNSET, UNSET, UNSET, UNSET];
 
         var determined = 0;
         while (determined < flawless)
@@ -176,7 +180,7 @@ public static class Roaming8bRNG
         }
 
         // Check that the nature matches
-        if (pk.Nature != (int)xoro.NextUInt(25))
+        if (pk.Nature != (Nature)xoro.NextUInt(25))
             return false;
 
         return GetIsHeightWeightMatch(pk, xoro);
@@ -188,7 +192,7 @@ public static class Roaming8bRNG
         // Assume that the gender is a match due to cute charm.
 
         // Check that the nature matches
-        if (pk.Nature != (int)xoro.NextUInt(25))
+        if (pk.Nature != (Nature)xoro.NextUInt(25))
             return false;
 
         return GetIsHeightWeightMatch(pk, xoro);

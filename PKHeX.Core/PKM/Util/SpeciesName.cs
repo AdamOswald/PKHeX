@@ -13,8 +13,8 @@ public static class SpeciesName
     /// <summary>
     /// Species name lists indexed by the <see cref="LanguageID"/> value.
     /// </summary>
-    private static readonly IReadOnlyList<IReadOnlyList<string>> SpeciesLang = new[]
-    {
+    private static readonly IReadOnlyList<IReadOnlyList<string>> SpeciesLang =
+    [
         Util.GetSpeciesList("ja"), // 0 (unused, invalid)
         Util.GetSpeciesList("ja"), // 1
         Util.GetSpeciesList("en"), // 2
@@ -26,7 +26,7 @@ public static class SpeciesName
         Util.GetSpeciesList("ko"), // 8
         Util.GetSpeciesList("zh"), // 9 Simplified
         Util.GetSpeciesList("zh2"), // 10 Traditional
-    };
+    ];
 
     /// <summary>
     /// Gets the maximum valid species ID stored in the <see cref="SpeciesLang"/> list.
@@ -38,7 +38,7 @@ public static class SpeciesName
     /// </summary>
     /// <remarks>Indexing matches <see cref="SpeciesLang"/>.</remarks>
     private static readonly string[] EggNames =
-    {
+    [
         "タマゴ",
         "タマゴ",
         "Egg",
@@ -50,14 +50,14 @@ public static class SpeciesName
         "알",
         "蛋",
         "蛋",
-    };
+    ];
 
     /// <summary>
     /// <see cref="PKM.Nickname"/> to <see cref="Species"/> table for all <see cref="LanguageID"/> values.
     /// </summary>
-    private static readonly IReadOnlyList<Dictionary<int, ushort>> SpeciesDict = GetDictionary(SpeciesLang);
+    private static readonly Dictionary<int, ushort>[] SpeciesDict = GetDictionary(SpeciesLang);
 
-    private static IReadOnlyList<Dictionary<int, ushort>> GetDictionary(IReadOnlyList<IReadOnlyList<string>> names)
+    private static Dictionary<int, ushort>[] GetDictionary(IReadOnlyList<IReadOnlyList<string>> names)
     {
         var result = new Dictionary<int, ushort>[names.Count];
         for (int i = 0; i < result.Length; i++)
@@ -104,7 +104,7 @@ public static class SpeciesName
     /// <param name="language">Language ID of the Pokémon</param>
     /// <param name="generation">Generation specific formatting option</param>
     /// <returns>Generation specific default species name</returns>
-    public static string GetSpeciesNameGeneration(ushort species, int language, int generation) => generation switch
+    public static string GetSpeciesNameGeneration(ushort species, int language, byte generation) => generation switch
     {
         <= 4 => GetSpeciesName1234(species, language, generation),
         7 when language == (int) LanguageID.ChineseS => GetSpeciesName7ZH(species, language),
@@ -116,13 +116,13 @@ public static class SpeciesName
     /// </summary>
     /// <param name="language">Language ID of the Pokémon</param>
     /// <param name="generation">Generation specific formatting option</param>
-    public static string GetEggName(int language, int generation = LatestGeneration) => generation switch
+    public static string GetEggName(int language, byte generation = LatestGeneration) => generation switch
     {
         <= 4 => GetEggName1234(0, language, generation),
         _ => (uint)language >= EggNames.Length ? string.Empty : EggNames[language],
     };
 
-    private static string GetSpeciesName1234(ushort species, int language, int generation)
+    private static string GetSpeciesName1234(ushort species, int language, byte generation)
     {
         if (species == 0)
             return GetEggName1234(species, language, generation);
@@ -151,17 +151,25 @@ public static class SpeciesName
         if (generation >= 3)
             return new string(result);
 
-        int indexSpace = result.IndexOf(' ');
-        if (indexSpace != -1)
+        // The only Gen1/2 species with a space is Mr. Mime; different period and no space.
+        if (species == (int)Species.MrMime)
         {
-            // Shift down. Strings have at most 1 occurrence of a space.
-            result[(indexSpace+1)..].CopyTo(result[indexSpace..]);
-            result = result[..^1];
+            int indexSpace = result.IndexOf(StringConverter1.SPH);
+            if (indexSpace > 0)
+            {
+                // Gen1/2 uses a different period for MR.MIME than user input.
+                result[indexSpace - 1] = StringConverter1.DOT;
+
+                // Shift down. Strings have at most 1 occurrence of a space.
+                result[(indexSpace + 1)..].CopyTo(result[indexSpace..]);
+                result = result[..^1];
+            }
         }
+
         return new string(result);
     }
 
-    private static string GetEggName1234(ushort species, int language, int generation)
+    private static string GetEggName1234(ushort species, int language, byte generation)
     {
         if (generation == 3)
             return "タマゴ"; // All Gen3 eggs are treated as JPN eggs.
@@ -217,7 +225,7 @@ public static class SpeciesName
     /// <param name="nickname">Current name</param>
     /// <param name="generation">Generation specific formatting option</param>
     /// <returns>True if it does not match any language name, False if not nicknamed</returns>
-    public static bool IsNicknamedAnyLanguage(ushort species, ReadOnlySpan<char> nickname, int generation = LatestGeneration)
+    public static bool IsNicknamedAnyLanguage(ushort species, ReadOnlySpan<char> nickname, byte generation = LatestGeneration)
     {
         var langs = Language.GetAvailableGameLanguages(generation);
         foreach (var language in langs)
@@ -236,7 +244,7 @@ public static class SpeciesName
     /// <param name="language">Language ID of the Pokémon</param>
     /// <param name="generation">Generation specific formatting option</param>
     /// <returns>True if it does not match the language name, False if not nicknamed (matches).</returns>
-    public static bool IsNicknamed(ushort species, ReadOnlySpan<char> nickname, int language, int generation = LatestGeneration)
+    public static bool IsNicknamed(ushort species, ReadOnlySpan<char> nickname, int language, byte generation = LatestGeneration)
     {
         var expect = GetSpeciesNameGeneration(species, language, generation);
         return !nickname.SequenceEqual(expect);
@@ -250,7 +258,7 @@ public static class SpeciesName
     /// <param name="nickname">Current name</param>
     /// <param name="generation">Generation specific formatting option</param>
     /// <returns>Language ID if it does not match any language name, -1 if no matches</returns>
-    public static int GetSpeciesNameLanguage(ushort species, int priorityLanguage, ReadOnlySpan<char> nickname, int generation = LatestGeneration)
+    public static int GetSpeciesNameLanguage(ushort species, int priorityLanguage, ReadOnlySpan<char> nickname, byte generation = LatestGeneration)
     {
         var langs = Language.GetAvailableGameLanguages(generation);
         var priorityIndex = langs.IndexOf((byte)priorityLanguage);
@@ -271,13 +279,13 @@ public static class SpeciesName
     /// <param name="nickname">Current name</param>
     /// <param name="generation">Generation specific formatting option</param>
     /// <returns>Language ID if it does not match any language name, -1 if no matches</returns>
-    public static int GetSpeciesNameLanguage(ushort species, ReadOnlySpan<char> nickname, int generation = LatestGeneration)
+    public static int GetSpeciesNameLanguage(ushort species, ReadOnlySpan<char> nickname, byte generation = LatestGeneration)
     {
         var langs = Language.GetAvailableGameLanguages(generation);
         return GetSpeciesNameLanguage(species, nickname, generation, langs);
     }
 
-    private static int GetSpeciesNameLanguage(ushort species, ReadOnlySpan<char> nickname, int generation, ReadOnlySpan<byte> langs)
+    private static int GetSpeciesNameLanguage(ushort species, ReadOnlySpan<char> nickname, byte generation, ReadOnlySpan<byte> langs)
     {
         foreach (var lang in langs)
         {
@@ -302,7 +310,7 @@ public static class SpeciesName
         var dict = SpeciesDict[language];
         if (!dict.TryGetValue(hash, out species))
             return false;
-        // Double check the species name
+        // Double-check the species name
         var arr = SpeciesLang[language];
         var expect = arr[species];
         return speciesName.SequenceEqual(expect);

@@ -50,8 +50,8 @@ public static class RibbonRules
         { HasVisitedBDSP: true } => true, // Max Friendship
         { HasVisitedGen9: true } => true, // Max Friendship
 
-        { HasVisitedGen6: true } when pk is not PK6 { IsUntraded: true, OT_Affection: < 255 } => true,
-        { HasVisitedGen7: true } when pk is not PK7 { IsUntraded: true, OT_Affection: < 255 } => true,
+        { HasVisitedGen6: true } when pk is not PK6 { IsUntraded: true, OriginalTrainerAffection: < 255 } => true,
+        { HasVisitedGen7: true } when pk is not PK7 { IsUntraded: true, OriginalTrainerAffection: < 255 } => true,
         _ => false,
     };
 
@@ -69,7 +69,7 @@ public static class RibbonRules
             return false;
 
         // Gen6/7: Increase level by 30 from original level
-        static bool IsWellTraveled30(PKM pk) => pk.CurrentLevel - pk.Met_Level >= 30;
+        static bool IsWellTraveled30(PKM pk) => pk.CurrentLevel - pk.MetLevel >= 30;
         if ((evos.HasVisitedGen6 || evos.HasVisitedGen7) && IsWellTraveled30(pk))
             return true;
 
@@ -94,7 +94,7 @@ public static class RibbonRules
             return true;
 
         // Legendaries can not compete in ranked yet.
-        if (evos.HasVisitedGen9 && IsRibbonValidMasterRankSV(pk))
+        if (evos.HasVisitedGen9 && IsRibbonValidMasterRankSV(enc))
             return true;
 
         return false;
@@ -119,7 +119,7 @@ public static class RibbonRules
                 return false;
         }
 
-        // Series 13 rule-set was the first time Ranked Battles allowed the use of Mythical Pokémon.
+        // Series 13 rule-set was the first rule-set that Ranked Battles allowed the use of Mythical Pokémon.
         // All species that can exist in SW/SH can compete in ranked.
         return true;
     }
@@ -127,12 +127,8 @@ public static class RibbonRules
     private static bool IsRibbonValidMasterRankSV(ISpeciesForm pk)
     {
         var species = pk.Species;
-        if (species is (int)WalkingWake or (int)IronLeaves)
-            return false;
         if (species is (int)Greninja)
             return pk.Form == 0; // Disallow Ash-Greninja
-        if (SpeciesCategory.IsLegendary(species))
-            return false;
         if (SpeciesCategory.IsMythical(species))
             return false;
         return true;
@@ -176,7 +172,7 @@ public static class RibbonRules
 
         // Can only obtain if the current level on receiving the ribbon is <= level 50.
         if (pk.Format == 3) // Stored value is not yet overwritten (G3->G4), check directly.
-            return pk.Met_Level <= 50;
+            return pk.MetLevel <= 50;
 
         // Most encounter types can be below level 50; only Shadow Dragonite & Tyranitar, and select Gen3 Event Gifts.
         // These edge cases can't be obtained below level 50, unlike some wild Pokémon which can be encountered at different locations for lower levels.
@@ -231,8 +227,8 @@ public static class RibbonRules
 
     // Derived from ROM data: true for all Footprint types besides 5 (5 = no feet).
     // If true, requires gaining 30 levels to obtain ribbon. If false, can obtain ribbon at any level.
-    private static ReadOnlySpan<bool> HasFootprintBDSP => new[]
-    {
+    private static ReadOnlySpan<bool> HasFootprintBDSP =>
+    [
         true,  true,  true,  true,  true,  true,  true,  true,  true,  true,
         true, false,  true,  true, false,  true,  true,  true,  true,  true,
         true,  true,  true,  true,  true,  true,  true,  true,  true,  true,
@@ -283,7 +279,7 @@ public static class RibbonRules
         true,  true,  true,  true, false,  true, false,  true,  true,  true,
         true,  true,  true,  true,  true,  true, false,  true,  true,  true,
         true,  true,  true,  true,
-    };
+    ];
 
     /// <summary>
     /// Checks if the input can receive the <see cref="IRibbonSetEvent3.RibbonNational"/> ribbon.
@@ -401,8 +397,8 @@ public static class RibbonRules
     /// <summary>
     /// Generation 3 &amp; 4 Battle Frontier Species banlist. When referencing this in context to generation 4, be sure to disallow <see cref="Pichu"/> with Form 1 (Spiky).
     /// </summary>
-    public static readonly HashSet<ushort> BattleFrontierBanlist = new()
-    {
+    public static readonly HashSet<ushort> BattleFrontierBanlist =
+    [
         (int)Mewtwo, (int)Mew,
         (int)Lugia, (int)HoOh, (int)Celebi,
         (int)Kyogre, (int)Groudon, (int)Rayquaza, (int)Jirachi, (int)Deoxys,
@@ -412,5 +408,5 @@ public static class RibbonRules
         (int)Cosmog, (int)Cosmoem, (int)Solgaleo, (int)Lunala, (int)Necrozma, (int)Magearna, (int)Marshadow, (int)Zeraora,
         (int)Meltan, (int)Melmetal,
         (int)Koraidon, (int)Miraidon,
-    };
+    ];
 }

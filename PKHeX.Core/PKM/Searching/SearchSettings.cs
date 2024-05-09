@@ -11,13 +11,13 @@ namespace PKHeX.Core.Searching;
 /// </summary>
 public sealed class SearchSettings
 {
-    public int Format { get; init; }
-    public int Generation { get; init; }
+    public byte Format { get; init; }
+    public byte Generation { get; init; }
     public required ushort Species { get; init; }
     public int Ability { get; init; } = -1;
-    public int Nature { get; init; } = -1;
+    public Nature Nature { get; init; } = Nature.Random;
     public int Item { get; init; } = -1;
-    public int Version { get; init; } = -1;
+    public GameVersion Version { get; init; }
     public int HiddenPowerType { get; init; } = -1;
 
     public SearchComparison SearchFormat { get; init; }
@@ -34,17 +34,17 @@ public sealed class SearchSettings
 
     public CloneDetectionMethod SearchClones { get; set; }
     public string BatchInstructions { get; init; } = string.Empty;
-    private IReadOnlyList<StringInstruction> BatchFilters { get; set; } = Array.Empty<StringInstruction>();
-    private IReadOnlyList<StringInstruction> BatchFiltersMeta { get; set; } = Array.Empty<StringInstruction>();
+    private IReadOnlyList<StringInstruction> BatchFilters { get; set; } = [];
+    private IReadOnlyList<StringInstruction> BatchFiltersMeta { get; set; } = [];
 
-    public readonly List<ushort> Moves = new();
+    public readonly List<ushort> Moves = [];
 
     // ReSharper disable once CollectionNeverUpdated.Global
     /// <summary>
     /// Extra Filters to be checked after all other filters have been checked.
     /// </summary>
     /// <remarks>Collection is iterated right before clones are checked.</remarks>
-    public List<Func<PKM, bool>> ExtraFilters { get; } = new();
+    public List<Func<PKM, bool>> ExtraFilters { get; } = [];
 
     /// <summary>
     /// Adds a move to the required move list.
@@ -153,11 +153,11 @@ public sealed class SearchSettings
             return false;
         if (Ability > -1 && pk.Ability != Ability)
             return false;
-        if (Nature > -1 && pk.StatNature != Nature)
+        if (Nature.IsFixed() && pk.StatNature != Nature)
             return false;
         if (Item > -1 && pk.HeldItem != Item)
             return false;
-        if (Version > -1 && pk.Version != Version)
+        if (Version.IsValidSavedVersion() && pk.Version != Version)
             return false;
         return true;
     }
@@ -209,13 +209,13 @@ public sealed class SearchSettings
     public IReadOnlyList<GameVersion> GetVersions(SaveFile sav, GameVersion fallback)
     {
         if (Version > 0)
-            return new[] {(GameVersion) Version};
+            return [Version];
 
         return Generation switch
         {
-            1 when !ParseSettings.AllowGen1Tradeback => new[] {RD, BU, GN, YW},
-            2 when sav is SAV2 {Korean: true} => new[] {GD, SI},
-            1 or 2 => new[] {RD, BU, GN, YW, /* */ GD, SI, C},
+            1 when !ParseSettings.AllowGen1Tradeback => [RD, BU, GN, YW],
+            2 when sav is SAV2 {Korean: true} => [GD, SI],
+            1 or 2 => [RD, BU, GN, YW, /* */ GD, SI, C],
 
             _ when fallback.GetGeneration() == Generation => GameUtil.GetVersionsWithinRange(sav, Generation).ToArray(),
             _ => GameUtil.GameVersions,
@@ -224,7 +224,7 @@ public sealed class SearchSettings
 
     private static GameVersion GetFallbackVersion(ITrainerInfo sav)
     {
-        var parent = GameUtil.GetMetLocationVersionGroup((GameVersion)sav.Game);
+        var parent = GameUtil.GetMetLocationVersionGroup(sav.Version);
         if (parent == Invalid)
             parent = GameUtil.GetMetLocationVersionGroup(GameUtil.GetVersion(sav.Generation));
         return parent;

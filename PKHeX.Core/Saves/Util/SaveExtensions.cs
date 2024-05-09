@@ -38,7 +38,7 @@ public static class SaveExtensions
         return true;
     }
 
-    private static IReadOnlyList<string> GetSaveFileErrata(this SaveFile sav, PKM pk, IBasicStrings strings)
+    private static List<string> GetSaveFileErrata(this SaveFile sav, PKM pk, IBasicStrings strings)
     {
         var errata = new List<string>();
         ushort held = (ushort)pk.HeldItem;
@@ -51,12 +51,12 @@ public static class SaveExtensions
                 msg = MsgIndexItemHeld;
             if (msg != null)
             {
-                var itemstr = GameInfo.Strings.GetItemStrings(pk.Context, (GameVersion)pk.Version);
+                var itemstr = GameInfo.Strings.GetItemStrings(pk.Context, pk.Version);
                 errata.Add($"{msg} {(held >= itemstr.Length ? held.ToString() : itemstr[held])}");
             }
         }
 
-        if (pk.Species > strings.Species.Count)
+        if (pk.Species >= strings.Species.Count)
             errata.Add($"{MsgIndexSpeciesRange} {pk.Species}");
         else if (sav.MaxSpeciesID < pk.Species)
             errata.Add($"{MsgIndexSpeciesGame} {strings.Species[pk.Species]}");
@@ -68,7 +68,7 @@ public static class SaveExtensions
         for (int i = 0; i < 4; i++)
         {
             var move = pk.GetMove(i);
-            if ((uint)move > movestr.Count)
+            if ((uint)move >= movestr.Count)
                 errata.Add($"{MsgIndexMoveRange} {move}");
             else if (move > sav.MaxMoveID)
                 errata.Add($"{MsgIndexMoveGame} {movestr[move]}");
@@ -165,7 +165,7 @@ public static class SaveExtensions
     {
         if (pk.Format >= 3 || sav.Generation >= 7)
             return EntityConverter.ConvertToType(pk, sav.PKMType, out _) ?? sav.BlankPKM;
-        // gen1-2 compatibility check
+        // Gen1/2 compatibility check
         if (pk.Japanese != ((ILangDeviantSave)sav).Japanese)
             return sav.BlankPKM;
         if (sav is SAV2 s2 && s2.Korean != pk.Korean)

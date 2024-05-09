@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Windows.Forms;
 
 using PKHeX.Core;
@@ -10,11 +11,11 @@ namespace PKHeX.WinForms;
 
 public static class WinFormsTranslator
 {
-    private static readonly Dictionary<string, TranslationContext> Context = new();
+    private static readonly Dictionary<string, TranslationContext> Context = [];
     internal static void TranslateInterface(this Control form, string lang) => TranslateForm(form, GetContext(lang));
 
-    private static string GetTranslationFileNameInternal(string lang) => $"lang_{lang}";
-    private static string GetTranslationFileNameExternal(string lang) => $"lang_{lang}.txt";
+    private static string GetTranslationFileNameInternal(ReadOnlySpan<char> lang) => $"lang_{lang}";
+    private static string GetTranslationFileNameExternal(ReadOnlySpan<char> lang) => $"lang_{lang}.txt";
 
     public static IReadOnlyDictionary<string, string> GetDictionary(string lang) => GetContext(lang).Lookup;
 
@@ -68,7 +69,7 @@ public static class WinFormsTranslator
         };
     }
 
-    private static void TranslateControl(object c, TranslationContext context, string formname)
+    private static void TranslateControl(object c, TranslationContext context, ReadOnlySpan<char> formname)
     {
         if (c is Control r)
         {
@@ -86,10 +87,10 @@ public static class WinFormsTranslator
         }
     }
 
-    private static ReadOnlySpan<string> GetTranslationFile(string lang)
+    private static ReadOnlySpan<string> GetTranslationFile(ReadOnlySpan<char> lang)
     {
         var file = GetTranslationFileNameInternal(lang);
-        // Check to see if a the translation file exists in the same folder as the executable
+        // Check to see if the desired translation file exists in the same folder as the executable
         string externalLangPath = GetTranslationFileNameExternal(file);
         if (File.Exists(externalLangPath))
         {
@@ -181,22 +182,52 @@ public static class WinFormsTranslator
         }
     }
 
-    public static void DumpAll(params string[] banlist)
+    public static void DumpAll(ReadOnlySpan<string> banlist)
     {
         foreach (var (lang, value) in Context)
         {
             var fn = GetTranslationFileNameExternal(lang);
             var lines = value.Write();
-            var result = lines.Where(z => !banlist.Any(z.Contains));
-            File.WriteAllLines(fn, result);
+
+            // Write a new file.
+            using var fs = new StreamWriter(fn);
+            foreach (var line in lines)
+            {
+                // Ensure line isn't banned.
+                if (IsBannedContains(line, banlist))
+                    continue;
+                fs.WriteLine(line);
+            }
         }
     }
 
-    public static void LoadAllForms(IEnumerable<Type> types, params string[] banlist)
+    private static bool IsBannedContains(ReadOnlySpan<char> line, ReadOnlySpan<string> banlist)
     {
-        types = types.Where(t => t.BaseType == typeof(Form) && !banlist.Contains(t.Name));
+        foreach (var banned in banlist)
+        {
+            if (line.Contains(banned, StringComparison.Ordinal))
+                return true;
+        }
+        return false;
+    }
+
+    private static bool IsBannedStartsWith(ReadOnlySpan<char> line, ReadOnlySpan<string> banlist)
+    {
+        foreach (var banned in banlist)
+        {
+            if (line.StartsWith(banned, StringComparison.Ordinal))
+                return true;
+        }
+        return false;
+    }
+
+    public static void LoadAllForms(IEnumerable<Type> types, ReadOnlySpan<string> banlist)
+    {
         foreach (var t in types)
         {
+            if (t.BaseType == typeof(Form) && IsBannedStartsWith(t.Name, banlist))
+                continue;
+
             var constructors = t.GetConstructors();
             if (constructors.Length == 0)
             { System.Diagnostics.Debug.WriteLine($"No constructors: {t.Name}"); continue; }
@@ -222,28 +253,52 @@ public static class WinFormsTranslator
         }
     }
 
-    public static void RemoveAll(string defaultLanguage, params string[] banlist)
+    public static void RemoveAll(string defaultLanguage, ReadOnlySpan<string> banlist)
     {
         var badKeys = Context[defaultLanguage];
-        var split = badKeys.Write().Select(z => z.Split(TranslationContext.Separator)[0])
-            .Where(l => !banlist.Any(l.StartsWith)).ToArray();
+        var skipExports = GetSkips(banlist, badKeys);
         foreach (var c in Context)
         {
             var lang = c.Key;
             var fn = GetTranslationFileNameExternal(lang);
             var lines = File.ReadAllLines(fn);
-            var result = lines.Where(l => !split.Any(s => l.StartsWith(s + TranslationContext.Separator)));
+            var result = lines.Where(l => !skipExports.Any(l.StartsWith));
             File.WriteAllLines(fn, result);
         }
+    }
+
+    private static string[] GetSkips(ReadOnlySpan<string> banlist, TranslationContext badKeys)
+    {
+        List<string> split = [];
+        foreach (var line in badKeys.Write())
+        {
+            var index = line.IndexOf(TranslationContext.Separator);
+            if (index < 0)
+                continue;
+            var key = line.AsSpan(0, index);
+            if (!IsBannedStartsWith(key, banlist))
+                split.Add(line[..(index+1)]);
+        }
+
+        if (split.Count == 0)
+            return [];
+        return [..split];
     }
 
     public static void LoadSettings<T>(string defaultLanguage, bool add = true)
     {
         var context = (Dictionary<string, string>)Context[defaultLanguage].Lookup;
-        var props = typeof(T).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+        Type t = typeof(T);
+        LoadSettings<T>(add, t, context);
+    }
+
+    private static void LoadSettings<T>(bool add, IReflect type, Dictionary<string, string> context)
+    {
+        var props = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
         foreach (var prop in props)
         {
-            var p = prop.PropertyType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            var t = prop.PropertyType;
+            var p = t.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             foreach (var x in p)
             {
                 var individual = (LocalizedDescriptionAttribute[])x.GetCustomAttributes(typeof(LocalizedDescriptionAttribute), false);
@@ -262,6 +317,9 @@ public static class WinFormsTranslator
                     }
                 }
             }
+            // If t is an object type, recurse.
+            if (t.IsClass && t != typeof(string))
+                LoadSettings<T>(add, t, context);
         }
     }
 #endif
@@ -272,7 +330,7 @@ public sealed class TranslationContext
     public bool AddNew { private get; set; }
     public bool RemoveUsedKeys { private get; set; }
     public const char Separator = '=';
-    private readonly Dictionary<string, string> Translation = new();
+    private readonly Dictionary<string, string> Translation = [];
     public IReadOnlyDictionary<string, string> Lookup => Translation;
 
     public TranslationContext(ReadOnlySpan<string> content, char separator = Separator)

@@ -24,11 +24,11 @@ public partial class PokePreview : Form
     }
 
     private static readonly Image[] GenderImages =
-    {
+    [
         Properties.Resources.gender_0,
         Properties.Resources.gender_1,
         Properties.Resources.gender_2,
-    };
+    ];
 
     public void Populate(PKM pk)
     {
@@ -67,7 +67,7 @@ public partial class PokePreview : Form
 
     private void PopulateBall(PKM pk)
     {
-        int ball = (int)Ball.Poke;
+        var ball = (byte)Ball.Poke;
         if (pk.Format >= 3)
             ball = pk.Ball;
         PB_Ball.Image = Drawing.PokeSprite.SpriteUtil.GetBallSprite(ball);
@@ -82,7 +82,7 @@ public partial class PokePreview : Form
         }
 
         var gender = pk.Gender;
-        if (gender > GenderImages.Length)
+        if (gender >= GenderImages.Length)
             gender = 2;
         PB_Gender.Image = GenderImages[gender];
     }
@@ -153,7 +153,7 @@ public partial class PokePreview : Form
             if (remaining[^1] == ')')
                 remaining = remaining[..^3]; // lop off gender
             var item = remaining.Trim();
-            if (item.Length > 0)
+            if (item.Length != 0)
                 sb.AppendLine($"Held Item: {item}");
         }
 

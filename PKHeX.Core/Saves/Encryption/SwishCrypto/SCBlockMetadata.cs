@@ -11,7 +11,7 @@ namespace PKHeX.Core;
 /// </summary>
 public sealed class SCBlockMetadata
 {
-    private readonly Dictionary<IDataIndirect, string> BlockList;
+    private readonly Dictionary<string, IDataIndirect> BlockList;
     private readonly Dictionary<uint, string> ValueList;
     private readonly SCBlockAccessor Accessor;
 
@@ -25,8 +25,8 @@ public sealed class SCBlockMetadata
         BlockList = aType.GetAllPropertiesOfType<IDataIndirect>(accessor);
         ValueList = aType.GetAllConstantsOfType<uint>();
         AddExtraKeyNames(ValueList, extraKeyNames);
-        if (exclusions.Length > 0)
-            ValueList = ValueList.Where(z => !exclusions.Any(z.Value.Contains)).ToDictionary(z => z.Key, z => z.Value);
+        if (exclusions.Length != 0)
+            ValueList = ValueList.Where(z => !exclusions.Any(z.Value.Contains)).ToDictionary();
         Accessor = accessor;
     }
 
@@ -95,11 +95,11 @@ public sealed class SCBlockMetadata
         // See if we have a Block object for this block
         if (block.Data.Length != 0)
         {
-            var obj = BlockList.FirstOrDefault(z => ReferenceEquals(z.Key.Data, block.Data));
+            var obj = BlockList.FirstOrDefault(z => z.Key.Equals(block.Data));
             if (obj is not (null, null))
             {
-                saveBlock = obj.Key;
-                return obj.Value;
+                saveBlock = obj.Value;
+                return obj.Key;
             }
         }
 
@@ -114,7 +114,7 @@ public sealed class SCBlockMetadata
     }
 
     /// <summary>
-    /// Returns an object that wraps the block with a Value property to get/set via a PropertyGrid/etc control.
+    /// Returns an object that wraps the block with a Value property to get/set via a PropertyGrid/etc. control.
     /// </summary>
     /// <returns>Returns null if no wrapping is supported.</returns>
     public static object? GetEditableBlockObject(SCBlock block) => block.Type switch
@@ -135,10 +135,9 @@ public sealed class SCBlockMetadata
         _ => null,
     };
 
-    private sealed class WrappedValueView<T> where T : struct
+    private sealed class WrappedValueView<T>(SCBlock Parent, object currentValue) where T : struct
     {
-        private readonly SCBlock Parent;
-        private T _value;
+        private T _value = (T)Convert.ChangeType(currentValue, typeof(T));
 
         [Description("Stored Value for this Block")]
         public T Value
@@ -149,12 +148,8 @@ public sealed class SCBlockMetadata
 
         // ReSharper disable once UnusedMember.Local
         [Description("Type of Value this Block stores")]
+#pragma warning disable CA1822
         public string ValueType => typeof(T).Name;
-
-        public WrappedValueView(SCBlock block, object currentValue)
-        {
-            Parent = block;
-            _value = (T)Convert.ChangeType(currentValue, typeof(T));
-        }
+#pragma warning restore CA1822
     }
 }

@@ -8,7 +8,7 @@ namespace PKHeX.Core;
 public sealed class LearnGroup9 : ILearnGroup
 {
     public static readonly LearnGroup9 Instance = new();
-    private const int Generation = 9;
+    private const byte Generation = 9;
     private const EntityContext Context = EntityContext.Gen9;
     public ushort MaxMoveID => Legal.MaxMoveID_9;
 
@@ -53,15 +53,15 @@ public sealed class LearnGroup9 : ILearnGroup
                 continue;
             var move = current[i];
             if (eggMoves.Contains(move))
-                result[i] = new(LearnMethod.Shared);
+                result[i] = new(LearnMethod.Shared, game.Environment);
         }
     }
 
     private static void CheckEncounterMoves(Span<MoveResult> result, ReadOnlySpan<ushort> current, EncounterEgg egg)
     {
-        ILearnSource game = LearnSource9SV.Instance;
+        var game = LearnSource9SV.Instance;
         var eggMoves = game.GetEggMoves(egg.Species, egg.Form);
-        var levelMoves = game.GetInheritMoves(egg.Species, egg.Form);
+        var levelMoves = ((ILearnSource)game).GetInheritMoves(egg.Species, egg.Form);
 
         for (var i = result.Length - 1; i >= 0; i--)
         {
@@ -69,11 +69,11 @@ public sealed class LearnGroup9 : ILearnGroup
                 continue;
             var move = current[i];
             if (eggMoves.Contains(move))
-                result[i] = new(LearnMethod.EggMove);
+                result[i] = new(LearnMethod.EggMove, game.Environment);
             else if (levelMoves.Contains(move))
-                result[i] = new(LearnMethod.InheritLevelUp);
+                result[i] = new(LearnMethod.InheritLevelUp, game.Environment);
             else if (move is (int)Move.VoltTackle && egg.CanHaveVoltTackle)
-                result[i] = new(LearnMethod.SpecialEgg);
+                result[i] = new(LearnMethod.SpecialEgg, game.Environment);
         }
     }
 

@@ -55,7 +55,7 @@ public sealed partial class MemoryContext8 : MemoryContext
     public override bool CanObtainMemoryHT(GameVersion pkmVersion, byte memory) => CanObtainMemorySWSH(memory);
 
     public override bool CanObtainMemory(byte memory) => CanObtainMemorySWSH(memory);
-    public override bool HasPokeCenter(GameVersion version, int location) => location == 9; // in a Pokémon Center
+    public override bool HasPokeCenter(GameVersion version, ushort location) => location == 9; // in a Pokémon Center
 
     public override bool IsInvalidGeneralLocationMemoryValue(byte memory, ushort variable, IEncounterTemplate enc, PKM pk)
     {
@@ -64,7 +64,7 @@ public sealed partial class MemoryContext8 : MemoryContext
             return false;
 
         if (memory is 1 or 2 or 3) // Encounter only
-            return IsInvalidGenLoc8(memory, pk.Met_Location, pk.Egg_Location, variable, pk, enc);
+            return IsInvalidGenLoc8(memory, pk.MetLocation, pk.EggLocation, variable, pk, enc);
         return IsInvalidGenLoc8Other(memory, variable);
     }
 
@@ -89,7 +89,7 @@ public sealed partial class MemoryContext8 : MemoryContext
         _ => ItemStorage8SWSH.IsTechRecord((ushort)item) || PurchaseItemsNoTR.BinarySearch((ushort)item) >= 0,
     };
 
-    private static bool IsInvalidGenLoc8(byte memory, int loc, int egg, ushort variable, PKM pk, IEncounterTemplate enc)
+    private static bool IsInvalidGenLoc8(byte memory, ushort loc, int egg, ushort variable, PKM pk, IEncounterTemplate enc)
     {
         if (variable > 255)
             return true;
@@ -97,7 +97,7 @@ public sealed partial class MemoryContext8 : MemoryContext
         switch (memory)
         {
             case 1 when !IsWildEncounter(pk, enc):
-            case 2 when !enc.EggEncounter:
+            case 2 when !enc.IsEgg:
             case 3 when !IsWildEncounterMeet(pk, enc):
                 return true;
         }
@@ -178,8 +178,12 @@ public sealed partial class MemoryContext8 : MemoryContext
         return (MemoryFeelings[memory] & (1 << --feeling)) != 0;
     }
 
+    public const byte MaxIntensity = 7;
+
     public static bool CanHaveIntensity8(byte memory, byte intensity)
     {
+        if ((uint)intensity > MaxIntensity)
+            return false;
         if (memory >= MemoryFeelings.Length)
             return false;
         return MemoryMinIntensity[memory] <= intensity;
@@ -197,10 +201,10 @@ public sealed partial class MemoryContext8 : MemoryContext
         }
     }
 
-    public static int GetMinimumIntensity8(int memory)
+    public static byte GetMinimumIntensity8(int memory)
     {
         if (memory >= MemoryMinIntensity.Length)
-            return -1;
+            return 0;
         return MemoryMinIntensity[memory];
     }
 

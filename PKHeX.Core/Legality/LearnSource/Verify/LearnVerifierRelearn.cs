@@ -46,7 +46,7 @@ public static class LearnVerifierRelearn
 
     private static void VerifyRelearnDexNav(PKM pk, Span<MoveResult> result, EncounterSlot6AO slot)
     {
-        // All other relearn moves must be empty.
+        // Only has one relearn move from the encounter. Every other relearn move must be empty.
         result[3] = ParseExpect(pk.RelearnMove4);
         result[2] = ParseExpect(pk.RelearnMove3);
         result[1] = ParseExpect(pk.RelearnMove2);
@@ -57,7 +57,7 @@ public static class LearnVerifierRelearn
 
     private static void VerifyRelearnUnderground(PKM pk, Span<MoveResult> result, EncounterSlot8b slot)
     {
-        // All other relearn moves must be empty.
+        // Only has one relearn move from the encounter. Every other relearn move must be empty.
         result[3] = ParseExpect(pk.RelearnMove4);
         result[2] = ParseExpect(pk.RelearnMove3);
         result[1] = ParseExpect(pk.RelearnMove2);
@@ -84,7 +84,7 @@ public static class LearnVerifierRelearn
 
     internal static void VerifyEggMoveset(EncounterEgg e, Span<MoveResult> result, ReadOnlySpan<ushort> moves)
     {
-        int gen = e.Generation;
+        var gen = e.Generation;
         Span<byte> origins = stackalloc byte[moves.Length];
         var valid = MoveBreed.Validate(gen, e.Species, e.Form, e.Version, moves, origins);
         if (valid)
@@ -94,7 +94,7 @@ public static class LearnVerifierRelearn
                 if (moves[i] == 0)
                     result[i] = MoveResult.Empty;
                 else
-                    result[i] = new(EggSourceUtil.GetSource(origins[i], gen));
+                    result[i] = new(EggSourceUtil.GetSource(origins[i], gen), GameData.GetLearnSource(e.Version).Environment);
             }
         }
         else
@@ -111,7 +111,7 @@ public static class LearnVerifierRelearn
                 else if (current == 0)
                     result[i] = MoveResult.Empty;
                 else
-                    result[i] = new(EggSourceUtil.GetSource(origins[i], gen));
+                    result[i] = new(EggSourceUtil.GetSource(origins[i], gen), GameData.GetLearnSource(e.Version).Environment);
             }
         }
 

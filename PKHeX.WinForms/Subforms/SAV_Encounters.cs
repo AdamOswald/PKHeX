@@ -55,7 +55,7 @@ public partial class SAV_Encounters : Form
         if (hdelta != 0)
             Height += hdelta;
 
-        PKXBOXES = grid.Entries.ToArray();
+        PKXBOXES = [..grid.Entries];
 
         // Enable Scrolling when hovered over
         foreach (var slot in PKXBOXES)
@@ -72,7 +72,7 @@ public partial class SAV_Encounters : Form
             {
                 if (sender is not PictureBox pb)
                     return;
-                var index = Array.IndexOf(PKXBOXES, sender);
+                var index = Array.IndexOf(PKXBOXES, pb);
                 if (index < 0)
                     return;
                 index += (SCR_Box.Value * RES_MIN);
@@ -88,7 +88,7 @@ public partial class SAV_Encounters : Form
         }
 
         Counter = L_Count.Text;
-        L_Viewed.Text = string.Empty; // invis for now
+        L_Viewed.Text = string.Empty; // invisible for now
         L_Viewed.MouseEnter += (sender, e) => hover.SetToolTip(L_Viewed, L_Viewed.Text);
         PopulateComboBoxes();
 
@@ -103,7 +103,7 @@ public partial class SAV_Encounters : Form
 
     private void GetTypeFilters()
     {
-        var types = (EncounterTypeGroup[])Enum.GetValues(typeof(EncounterTypeGroup));
+        var types = Enum.GetValues<EncounterTypeGroup>();
         var checks = types.Select(z => new CheckBox
         {
             Name = z.ToString(),
@@ -127,7 +127,7 @@ public partial class SAV_Encounters : Form
     }
 
     private readonly PictureBox[] PKXBOXES;
-    private List<IEncounterInfo> Results = new();
+    private List<IEncounterInfo> Results = [];
     private int slotSelected = -1; // = null;
     private Image? slotColor;
     private const int RES_MAX = 66;
@@ -188,7 +188,7 @@ public partial class SAV_Encounters : Form
         var set = new ShowdownSet(editor);
         var criteria = EncounterCriteria.GetCriteria(set, editor.PersonalInfo);
         if (!isInChain)
-            criteria = criteria with { Gender = FixedGenderUtil.GenderRandom }; // Genderless tabs and a gendered enc -> let's play safe.
+            criteria = criteria with { Gender = default }; // Genderless tabs and a gendered enc -> let's play safe.
         return criteria;
     }
 
@@ -203,7 +203,7 @@ public partial class SAV_Encounters : Form
         var DS_Species = new List<ComboItem>(GameInfo.SpeciesDataSource);
         DS_Species.RemoveAt(0); DS_Species.Insert(0, Any); CB_Species.DataSource = DS_Species;
 
-        // Set the Move ComboBoxes too..
+        // Set the Move ComboBoxes too.
         var DS_Move = new List<ComboItem>(GameInfo.MoveDataSource);
         DS_Move.RemoveAt(0); DS_Move.Insert(0, Any);
         {
@@ -245,15 +245,15 @@ public partial class SAV_Encounters : Form
 
         // If nothing is specified, instead of just returning all possible encounters, just return nothing.
         if (settings is { Species: 0, Moves.Count: 0 } && Main.Settings.EncounterDb.ReturnNoneIfEmptySearch)
-            return Array.Empty<IEncounterInfo>();
+            return [];
         var pk = SAV.BlankPKM;
 
         var moves = settings.Moves.ToArray();
         var versions = settings.GetVersions(SAV);
-        var species = settings.Species == 0 ? GetFullRange(SAV.MaxSpeciesID) : new[] { settings.Species };
+        var species = settings.Species == 0 ? GetFullRange(SAV.MaxSpeciesID) : [settings.Species];
         var results = GetAllSpeciesFormEncounters(species, SAV.Personal, versions, moves, pk, token);
         if (settings.SearchEgg != null)
-            results = results.Where(z => z.EggEncounter == settings.SearchEgg);
+            results = results.Where(z => z.IsEgg == settings.SearchEgg);
         if (settings.SearchShiny != null)
             results = results.Where(z => z.IsShiny == settings.SearchShiny);
 
@@ -283,7 +283,7 @@ public partial class SAV_Encounters : Form
             return results;
 
         ReadOnlySpan<char> batchText = RTB_Instructions.Text;
-        if (batchText.Length > 0 && !StringInstructionSet.HasEmptyLine(batchText))
+        if (batchText.Length != 0 && !StringInstructionSet.HasEmptyLine(batchText))
         {
             var filters = StringInstruction.GetFilters(batchText);
             BatchEditing.ScreenStrings(filters);
@@ -299,7 +299,7 @@ public partial class SAV_Encounters : Form
             yield return i;
     }
 
-    private IEnumerable<IEncounterInfo> GetAllSpeciesFormEncounters(IEnumerable<ushort> species, IPersonalTable pt, IReadOnlyList<GameVersion> versions, ushort[] moves, PKM pk, CancellationToken token)
+    private IEnumerable<IEncounterInfo> GetAllSpeciesFormEncounters(IEnumerable<ushort> species, IPersonalTable pt, IReadOnlyList<GameVersion> versions, ReadOnlyMemory<ushort> moves, PKM pk, CancellationToken token)
     {
         foreach (var s in species)
         {
@@ -339,7 +339,7 @@ public partial class SAV_Encounters : Form
         public int GetHashCode(T obj) => RuntimeHelpers.GetHashCode(obj);
     }
 
-    private IEnumerable<IEncounterInfo> GetEncounters(ushort species, byte form, ushort[] moves, PKM pk, IReadOnlyList<GameVersion> vers)
+    private IEnumerable<IEncounterInfo> GetEncounters(ushort species, byte form, ReadOnlyMemory<ushort> moves, PKM pk, IReadOnlyList<GameVersion> vers)
     {
         pk.Species = species;
         pk.Form = form;
@@ -358,7 +358,7 @@ public partial class SAV_Encounters : Form
             Species = GetU16(CB_Species),
 
             BatchInstructions = RTB_Instructions.Text,
-            Version = WinFormsUtil.GetIndex(CB_GameOrigin),
+            Version = (GameVersion)WinFormsUtil.GetIndex(CB_GameOrigin),
         };
 
         static ushort GetU16(ListControl cb)
@@ -503,8 +503,8 @@ public partial class SAV_Encounters : Form
         // If we already have text, add a new line (except if the last line is blank).
         var tb = RTB_Instructions;
         var batchText = tb.Text;
-        if (batchText.Length > 0 && !batchText.EndsWith('\n'))
+        if (batchText.Length != 0 && !batchText.EndsWith('\n'))
             tb.AppendText(Environment.NewLine);
-        RTB_Instructions.AppendText(s);
+        tb.AppendText(s);
     }
 }

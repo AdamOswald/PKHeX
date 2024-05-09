@@ -19,6 +19,8 @@ public sealed class LearnSource7SM : ILearnSource<PersonalInfo7>, IEggSource
     private const LearnEnvironment Game = SM;
     private const int ReminderBonus = 100; // Move reminder allows re-learning ALL level up moves regardless of level.
 
+    public LearnEnvironment Environment => Game;
+
     public Learnset GetLearnset(ushort species, byte form) => Learnsets[Personal.GetFormIndex(species, form)];
 
     public bool TryGetPersonal(ushort species, byte form, [NotNullWhen(true)] out PersonalInfo7? pi)
@@ -41,7 +43,7 @@ public sealed class LearnSource7SM : ILearnSource<PersonalInfo7>, IEggSource
     public ReadOnlySpan<ushort> GetEggMoves(ushort species, byte form)
     {
         if (species > MaxSpecies)
-            return ReadOnlySpan<ushort>.Empty;
+            return [];
         return EggMoves.GetFormEggMoves(species, form);
     }
 

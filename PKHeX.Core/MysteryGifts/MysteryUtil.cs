@@ -46,7 +46,7 @@ public static class MysteryUtil
     public static IEnumerable<string> GetDescription(this MysteryGift gift, IBasicStrings strings)
     {
         if (gift.Empty)
-            return new[] { MsgMysteryGiftSlotEmpty };
+            return [MsgMysteryGiftSlotEmpty];
 
         var result = new List<string> { gift.CardHeader };
         if (gift.IsItem)
@@ -72,6 +72,13 @@ public static class MysteryUtil
                     result.Add($"Bean ID: {w7bean.Bean}");
                     result.Add($"Quantity: {w7bean.Quantity}");
                     break;
+                case PCD pcd:
+                    result.Add($"{pcd.GiftType}");
+                    result.Add($"Collected: {pcd.GiftUsed}");
+                    break;
+                case PGT pgt:
+                    result.Add($"{pgt.GiftType}");
+                    break;
                 default:
                     result.Add(MsgMysteryGiftParseTypeUnknown);
                     break;
@@ -89,7 +96,7 @@ public static class MysteryUtil
         return result;
     }
 
-    private static void AddLinesItem(MysteryGift gift, IBasicStrings strings, ICollection<string> result)
+    private static void AddLinesItem(MysteryGift gift, IBasicStrings strings, List<string> result)
     {
         result.Add($"Item: {strings.Item[gift.ItemID]} (Quantity: {gift.Quantity})");
         if (gift is not WC7 wc7)
@@ -101,13 +108,13 @@ public static class MysteryUtil
         }
     }
 
-    private static void AddLinesPKM(MysteryGift gift, IBasicStrings strings, ICollection<string> result)
+    private static void AddLinesPKM(MysteryGift gift, IBasicStrings strings, List<string> result)
     {
         var id = gift.Generation < 7 ? $"{gift.TID16:D5}/{gift.SID16:D5}" : $"[{gift.TrainerSID7:D4}]{gift.TrainerTID7:D6}";
 
         var first =
             $"{strings.Species[gift.Species]} @ {strings.Item[gift.HeldItem >= 0 ? gift.HeldItem : 0]}  --- "
-            + (gift.IsEgg ? strings.EggName : $"{gift.OT_Name} - {id}");
+            + (gift.IsEgg ? strings.EggName : $"{gift.OriginalTrainerName} - {id}");
         result.Add(first);
         result.Add(gift.Moves.GetMovesetLine(strings.Move));
 
@@ -140,13 +147,11 @@ public static class MysteryUtil
             return false;
         }
 
-        if (g is WC6 { CardID: 2048, ItemID: 726 }) // Eon Ticket (OR/AS)
+        if (g is WC6 { CardID: 2048, ItemID: 726 } && sav is not SAV6AO)
         {
-            if (sav is not SAV6AO)
-            {
-                message = MsgMysteryGiftSlotSpecialReject;
-                return false;
-            }
+            // Eon Ticket (OR/AS)
+            message = MsgMysteryGiftSlotSpecialReject;
+            return false;
         }
 
         message = string.Empty;

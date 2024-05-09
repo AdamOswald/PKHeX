@@ -59,7 +59,7 @@ public static class Overworld8RNG
         pk.PID = pid;
 
         // IVs
-        Span<int> ivs = stackalloc[] {UNSET, UNSET, UNSET, UNSET, UNSET, UNSET};
+        Span<int> ivs = [UNSET, UNSET, UNSET, UNSET, UNSET, UNSET];
         const int MAX = 31;
         for (int i = 0; i < flawless; i++)
         {
@@ -88,8 +88,8 @@ public static class Overworld8RNG
 
         // Remainder
         var scale = (IScaledSize) pk;
-        scale.HeightScalar = (byte)((int) xoro.NextInt(0x81) + (int) xoro.NextInt(0x80));
-        scale.WeightScalar = (byte)((int) xoro.NextInt(0x81) + (int) xoro.NextInt(0x80));
+        scale.HeightScalar = (byte)(xoro.NextInt(0x81) + xoro.NextInt(0x80));
+        scale.WeightScalar = (byte)(xoro.NextInt(0x81) + xoro.NextInt(0x80));
 
         return true;
     }
@@ -164,7 +164,7 @@ public static class Overworld8RNG
                 continue;
 
             var copy = xoro;
-            Span<int> ivs = stackalloc [] { UNSET, UNSET, UNSET, UNSET, UNSET, UNSET };
+            Span<int> ivs = [UNSET, UNSET, UNSET, UNSET, UNSET, UNSET];
             const int MAX = 31;
             for (int i = 0; i < iv_count; i++)
             {
@@ -188,10 +188,10 @@ public static class Overworld8RNG
 
             if (pk is not IScaledSize s)
                 continue;
-            var height = (int) copy.NextInt(0x81) + (int) copy.NextInt(0x80);
+            var height = copy.NextInt(0x81) + copy.NextInt(0x80);
             if (s.HeightScalar != height)
                 continue;
-            var weight = (int) copy.NextInt(0x81) + (int) copy.NextInt(0x80);
+            var weight = copy.NextInt(0x81) + copy.NextInt(0x80);
             if (s.WeightScalar != weight)
                 continue;
 

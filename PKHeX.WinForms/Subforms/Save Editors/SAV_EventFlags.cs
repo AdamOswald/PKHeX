@@ -11,17 +11,17 @@ namespace PKHeX.WinForms;
 public sealed partial class SAV_EventFlags : Form
 {
     private readonly EventWorkspace<IEventFlag37, ushort> Editor;
-    private readonly Dictionary<int, NumericUpDown> WorkDict = new();
-    private readonly Dictionary<int, int> FlagDict = new();
+    private readonly Dictionary<int, NumericUpDown> WorkDict = [];
+    private readonly Dictionary<int, int> FlagDict = [];
 
     private bool editing;
 
-    public SAV_EventFlags(IEventFlag37 sav)
+    public SAV_EventFlags(IEventFlag37 sav, GameVersion version)
     {
         InitializeComponent();
         WinFormsUtil.TranslateInterface(this, Main.CurrentLanguage);
 
-        var editor = Editor = new EventWorkspace<IEventFlag37, ushort>(sav);
+        var editor = Editor = new EventWorkspace<IEventFlag37, ushort>(sav, version);
         DragEnter += Main_DragEnter;
         DragDrop += Main_DragDrop;
 
@@ -40,7 +40,7 @@ public sealed partial class SAV_EventFlags : Form
         dgv.ResumeLayout();
         TLP_Const.ResumeLayout();
 
-        Text = $"{Text} ({((IVersion)sav).Version})";
+        Text = $"{Text} ({version})";
 
         if (CB_Stats.Items.Count > 0)
         {
@@ -267,7 +267,7 @@ public sealed partial class SAV_EventFlags : Form
 
     private void ChangeSAV(object sender, EventArgs e)
     {
-        if (TB_NewSAV.Text.Length > 0 && TB_OldSAV.Text.Length > 0)
+        if (TB_NewSAV.Text.Length != 0 && TB_OldSAV.Text.Length != 0)
             DiffSaves();
     }
 

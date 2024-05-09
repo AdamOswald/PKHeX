@@ -5,8 +5,8 @@ namespace PKHeX.Core;
 /// <summary> Generation 8 <see cref="PKM"/> format. </summary>
 public sealed class PB8 : G8PKM
 {
-    public override ReadOnlySpan<ushort> ExtraBytes => new ushort[]
-    {
+    public override ReadOnlySpan<ushort> ExtraBytes =>
+    [
         // Alignment bytes
         0x17, 0x1A, 0x1B, 0x23, 0x33, 0x3E, 0x3F,
         0x4C, 0x4D, 0x4E, 0x4F,
@@ -23,7 +23,7 @@ public sealed class PB8 : G8PKM
 
         0x13D, 0x13E, 0x13F,
         0x140, 0x141, 0x142, 0x143, 0x144, 0x145, 0x146, 0x147,
-    };
+    ];
 
     public override PersonalInfo8BDSP PersonalInfo => PersonalTable.BDSP.GetFormEntry(Species, Form);
     public override IPermitRecord Permit => PersonalInfo;
@@ -32,7 +32,7 @@ public sealed class PB8 : G8PKM
 
     public PB8()
     {
-        Egg_Location = Met_Location = Locations.Default8bNone;
+        EggLocation = MetLocation = Locations.Default8bNone;
         AffixedRibbon = -1; // 00 would make it show Kalos Champion :)
     }
 
@@ -45,15 +45,30 @@ public sealed class PB8 : G8PKM
         set => Data[0x52] = (byte)((Data[0x52] & 0xFE) | (value ? 1 : 0));
     }
 
-    public void Trade(ITrainerInfo tr, int Day = 1, int Month = 1, int Year = 2015)
+    public bool BelongsTo(ITrainerInfo tr)
+    {
+        if (tr.Version != Version)
+            return false;
+        if (tr.ID32 != ID32)
+            return false;
+        if (tr.Gender != OriginalTrainerGender)
+            return false;
+        return tr.OT == OriginalTrainerName;
+    }
+
+    public void UpdateHandler(ITrainerInfo tr)
     {
         if (IsEgg)
         {
-            // Apply link trade data, only if it left the OT (ignore if dumped & imported, or cloned, etc)
-            if ((tr.TID16 != TID16) || (tr.SID16 != SID16) || (tr.Gender != OT_Gender) || (tr.OT != OT_Name))
-                SetLinkTradeEgg(Day, Month, Year, Locations.LinkTrade6NPC);
+            // Apply link trade data, only if it left the OT (ignore if dumped & imported, or cloned, etc.)
+            const ushort location = Locations.LinkTrade6NPC;
+            if (MetLocation != location && !BelongsTo(tr))
+            {
+                var date = EncounterDate.GetDate3DS();
+                SetLinkTradeEgg(date.Day, date.Month, date.Year, location);
+            }
 
-            // Unfortunately, BDSP doesn't return if it's an egg, and can update the HT details & handler.
+            // Unfortunately, BD/SP doesn't return if it's an egg, and can update the HT details & handler.
             // Continue to the rest of the method.
             // return;
         }
@@ -67,38 +82,40 @@ public sealed class PB8 : G8PKM
     {
         if (BDSP)
         {
-            OT_TextVar = OT_Memory = OT_Intensity = OT_Feeling = 0;
-            HT_TextVar = HT_Memory = HT_Intensity = HT_Feeling = 0; // future inter-format conversion?
+            this.ClearMemoriesOT();
+            this.ClearMemoriesHT();
         }
 
         if (IsEgg) // No memories if is egg.
         {
-            HT_TextVar = HT_Memory = HT_Intensity = HT_Feeling = 0;
-            OT_TextVar = OT_Memory = OT_Intensity = OT_Feeling = 0;
-
+            // Memories already cleared above.
             // Clear Handler
             if (!IsTradedEgg)
             {
-                HT_Friendship = HT_Gender = HT_Language = 0;
-                HT_Trash.Clear();
+                HandlingTrainerFriendship = HandlingTrainerGender = HandlingTrainerLanguage = 0;
+                HandlingTrainerTrash.Clear();
             }
             return;
         }
 
         if (IsUntraded)
-            HT_Gender = HT_Friendship = HT_TextVar = HT_Memory = HT_Intensity = HT_Feeling = HT_Language = 0;
-
-        int gen = Generation;
-        if (gen < 6)
-            OT_TextVar = OT_Memory = OT_Intensity = OT_Feeling = 0;
-        // if (gen != 8) // must be transferred via HOME, and must have memories
-        //     this.SetTradeMemoryHT8(); // not faking HOME tracker.
+        {
+            // Memories already cleared above.
+            HandlingTrainerFriendship = HandlingTrainerGender = HandlingTrainerLanguage = 0;
+            HandlingTrainerTrash.Clear();
+        }
+        else
+        {
+            var gen = Generation;
+            if (gen < 6)
+                this.ClearMemoriesOT();
+        }
     }
 
     private bool TradeOT(ITrainerInfo tr)
     {
         // Check to see if the OT matches the SAV's OT info.
-        if (!(tr.ID32 == ID32 && tr.Gender == OT_Gender && tr.OT == OT_Name))
+        if (!BelongsTo(tr))
             return false;
 
         CurrentHandler = 0;
@@ -107,14 +124,14 @@ public sealed class PB8 : G8PKM
 
     private void TradeHT(ITrainerInfo tr)
     {
-        if (HT_Name != tr.OT)
+        if (HandlingTrainerName != tr.OT)
         {
-            HT_Friendship = PersonalInfo.BaseFriendship;
-            HT_Name = tr.OT;
+            HandlingTrainerFriendship = PersonalInfo.BaseFriendship;
+            HandlingTrainerName = tr.OT;
         }
         CurrentHandler = 1;
-        HT_Gender = tr.Gender;
-        HT_Language = (byte)tr.Language;
+        HandlingTrainerGender = tr.Gender;
+        HandlingTrainerLanguage = (byte)tr.Language;
         //this.SetTradeMemoryHT8();
     }
 
@@ -124,9 +141,16 @@ public sealed class PB8 : G8PKM
     public override int MaxAbilityID => Legal.MaxAbilityID_8b;
     public override int MaxItemID => Legal.MaxItemID_8b;
     public override int MaxBallID => Legal.MaxBallID_8b;
-    public override int MaxGameID => Legal.MaxGameID_HOME;
+    public override GameVersion MaxGameID => Legal.MaxGameID_HOME;
 
-    public override bool WasEgg => IsEgg || Egg_Day != 0;
+    public override bool WasEgg => IsEgg || EggDay != 0;
 
-    public override bool HasOriginalMetLocation => base.HasOriginalMetLocation && !(LA && Met_Location == LocationsHOME.SWLA);
+    public override bool HasOriginalMetLocation => base.HasOriginalMetLocation && !(LA && MetLocation == LocationsHOME.SWLA);
+
+    public override string GetString(ReadOnlySpan<byte> data)
+        => StringConverter8.GetString(data);
+    public override int LoadString(ReadOnlySpan<byte> data, Span<char> destBuffer)
+        => StringConverter8.LoadString(data, destBuffer);
+    public override int SetString(Span<byte> destBuffer, ReadOnlySpan<char> value, int maxLength, StringConverterOption option)
+        => StringConverter8.SetString(destBuffer, value, maxLength, option);
 }

@@ -50,12 +50,12 @@ public partial class SAV_BlockDump8 : Form
     {
         var extra = Main.Settings.Advanced.PathBlockKeyList;
         if (extra.Length != 0 && !Directory.Exists(extra))
-            return Array.Empty<string>();
+            return [];
 
         var file = Path.Combine(extra, obj.GetType().Name);
         file = $"{file}.txt";
         if (!File.Exists(file))
-            return Array.Empty<string>();
+            return [];
 
         return File.ReadLines(file);
     }
@@ -80,7 +80,7 @@ public partial class SAV_BlockDump8 : Form
     {
         var block = CurrentBlock;
         L_Detail_R.Text = GetBlockSummary(block);
-        RTB_Hex.Text = string.Join(" ", block.Data.Select(z => $"{z:X2}"));
+        RTB_Hex.Text = string.Join(' ', block.Data.Select(z => $"{z:X2}"));
 
         var blockName = Metadata.GetBlockName(block, out var obj);
         if (blockName != null)
@@ -238,7 +238,7 @@ public partial class SAV_BlockDump8 : Form
         // Get an external source of names if available.
         var extra = GetExtraKeyNames(w1);
         var compare = new SCBlockCompare(w1.Accessor, w2.Accessor, extra);
-        richTextBox1.Lines = compare.Summary().ToArray();
+        richTextBox1.Lines = [.. compare.Summary()];
     }
 
     private static void ExportSelectBlock(SCBlock block)
@@ -297,9 +297,13 @@ public partial class SAV_BlockDump8 : Form
                     CB_Key.DataSource = SortedBlockKeys;
                     Filter = string.Empty;
                 }
-                // Input is hexadecimal number, select the item
-                CB_Key.SelectedValue = hex;
-                return;
+                // Input is hexadecimal number, select the item -- if it exists.
+                bool exists = SortedBlockKeys.Any(z => z.Value == hex);
+                if (exists)
+                {
+                    CB_Key.SelectedValue = hex;
+                    return;
+                }
             }
         }
 

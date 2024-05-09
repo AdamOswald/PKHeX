@@ -16,6 +16,8 @@ public sealed class LearnSource5B2W2 : LearnSource5, ILearnSource<PersonalInfo5B
     private const int MaxSpecies = Legal.MaxSpeciesID_5;
     private const LearnEnvironment Game = B2W2;
 
+    public LearnEnvironment Environment => Game;
+
     public Learnset GetLearnset(ushort species, byte form) => Learnsets[Personal.GetFormIndex(species, form)];
 
     public bool TryGetPersonal(ushort species, byte form, [NotNullWhen(true)] out PersonalInfo5B2W2? pi)
@@ -38,7 +40,7 @@ public sealed class LearnSource5B2W2 : LearnSource5, ILearnSource<PersonalInfo5B
     public ReadOnlySpan<ushort> GetEggMoves(ushort species, byte form)
     {
         if (species > MaxSpecies)
-            return ReadOnlySpan<ushort>.Empty;
+            return [];
         return EggMoves[species].Moves;
     }
 

@@ -19,6 +19,8 @@ public class VerticalTabControl : TabControl
     protected override void OnDrawItem(DrawItemEventArgs e)
     {
         var index = e.Index;
+        if ((uint)index >= TabPages.Count)
+            return;
         var bounds = GetTabRect(index);
 
         var graphics = e.Graphics;
@@ -57,18 +59,20 @@ public sealed class VerticalTabControlEntityEditor : VerticalTabControl
     /// Tab stripe colors based on Contest Stats.
     /// </summary>
     private static readonly Color[] SelectedTags =
-    {
+    [
         Color.FromArgb(248, 152, 096),
         Color.FromArgb(128, 152, 248),
         Color.FromArgb(248, 168, 208),
         Color.FromArgb(112, 224, 112),
         Color.FromArgb(248, 240, 056),
         Color.RosyBrown,
-    };
+    ];
 
     protected override void OnDrawItem(DrawItemEventArgs e)
     {
         var index = e.Index;
+        if ((uint)index >= TabPages.Count)
+            return;
         var bounds = GetTabRect(index);
 
         var graphics = e.Graphics;

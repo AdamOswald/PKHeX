@@ -21,8 +21,8 @@ public static class QR7
 {
     public const int SIZE = 0x1A2;
 
-    private static ReadOnlySpan<byte> GenderDifferences => new byte[]
-    {
+    private static ReadOnlySpan<byte> GenderDifferences =>
+    [
         0x08, 0x10, 0x18, 0x06, 0x00, 0x36, 0x00, 0x00, 0x03, 0x00,
         0x30, 0x00, 0x02, 0x80, 0xC1, 0x08, 0x06, 0x00, 0x00, 0x04,
         0x60, 0x00, 0x04, 0x46, 0x4C, 0x8C, 0xD1, 0x22, 0x21, 0x01,
@@ -32,7 +32,7 @@ public static class QR7
         0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x10, 0x40,
-    };
+    ];
 
     private static bool IsGenderDifferent(ushort species)
     {
@@ -77,8 +77,7 @@ public static class QR7
         box = Math.Clamp(box, 0, 31);
         slot = Math.Clamp(slot, 0, 29);
         num_copies = Math.Min(num_copies, 1);
-        if (span.Length < SIZE)
-            throw new ArgumentException($"Span must be at least {SIZE} bytes long.", nameof(span));
+        ArgumentOutOfRangeException.ThrowIfLessThan(span.Length, SIZE);
 
         WriteUInt32LittleEndian(span, 0x454B4F50); // POKE magic
         span[0x4] = 0xFF; // QR Type
@@ -87,7 +86,7 @@ public static class QR7
         WriteInt32LittleEndian(span[0x10..], num_copies); // No need to check max num_copies, payload parser handles it on-console.
 
         pk7.EncryptedPartyData.CopyTo(span[0x30..]); // Copy in pokemon data
-        GetRawQR(span[0x140..], pk7.Species, pk7.Form, pk7.IsShiny, (byte)pk7.Gender);
+        GetRawQR(span[0x140..], pk7.Species, pk7.Form, pk7.IsShiny, pk7.Gender);
 
         var chk = Checksums.CRC16Invert(span[..0x1A0]);
         WriteUInt16LittleEndian(span[0x1A0..], chk);

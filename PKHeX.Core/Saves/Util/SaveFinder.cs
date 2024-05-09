@@ -70,7 +70,7 @@ public static class SaveFinder
     /// <summary>
     /// Extra list of Backup Paths used for detecting a save file.
     /// </summary>
-    public static readonly List<string> CustomBackupPaths = new();
+    public static readonly List<string> CustomBackupPaths = [];
 
     /// <summary>
     /// Finds a compatible save file that was most recently saved (by file write time).
@@ -165,20 +165,17 @@ public static class SaveFinder
     /// <inheritdoc cref="GetSaveFiles"/>
     public static IEnumerable<SaveFile> DetectSaveFiles() => GetSaveFiles(Environment.GetLogicalDrives(), true, CustomBackupPaths, true);
 
-    /// <inheritdoc cref="TryDetectSaveFile(out SaveFile?)"/>
+    /// <returns>
+    /// True if a valid save file was found, false otherwise.
+    /// </returns>
+    /// <inheritdoc cref="FindMostRecentSaveFile(IReadOnlyList{string},string[])"/>
     public static bool TryDetectSaveFile([NotNullWhen(true)] out SaveFile? sav) => TryDetectSaveFile(Environment.GetLogicalDrives(), out sav);
 
+    /// <inheritdoc cref="TryDetectSaveFile(out SaveFile)"/>
     public static bool TryDetectSaveFile(IReadOnlyList<string> drives, [NotNullWhen(true)] out SaveFile? sav)
     {
-        var result = FindMostRecentSaveFile(drives, CustomBackupPaths);
-        if (result == null)
-        {
-            sav = null;
-            return false;
-        }
-
-        var path = result.Metadata.FilePath!;
-        sav = result;
+        sav = FindMostRecentSaveFile(drives, CustomBackupPaths);
+        var path = sav?.Metadata.FilePath;
         return File.Exists(path);
     }
 }

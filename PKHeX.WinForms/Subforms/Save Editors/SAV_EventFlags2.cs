@@ -11,8 +11,8 @@ namespace PKHeX.WinForms;
 public sealed partial class SAV_EventFlags2 : Form
 {
     private readonly EventWorkspace<SAV2, byte> Editor;
-    private readonly Dictionary<int, NumericUpDown> WorkDict = new();
-    private readonly Dictionary<int, int> FlagDict = new();
+    private readonly Dictionary<int, NumericUpDown> WorkDict = [];
+    private readonly Dictionary<int, int> FlagDict = [];
 
     private bool editing;
 
@@ -21,7 +21,7 @@ public sealed partial class SAV_EventFlags2 : Form
         InitializeComponent();
         WinFormsUtil.TranslateInterface(this, Main.CurrentLanguage);
 
-        var editor = Editor = new EventWorkspace<SAV2, byte>(sav);
+        var editor = Editor = new EventWorkspace<SAV2, byte>(sav, sav.Version);
         DragEnter += Main_DragEnter;
         DragDrop += Main_DragDrop;
 
@@ -266,7 +266,7 @@ public sealed partial class SAV_EventFlags2 : Form
 
     private void ChangeSAV(object sender, EventArgs e)
     {
-        if (TB_NewSAV.Text.Length > 0 && TB_OldSAV.Text.Length > 0)
+        if (TB_NewSAV.Text.Length != 0 && TB_OldSAV.Text.Length != 0)
             DiffSaves();
     }
 

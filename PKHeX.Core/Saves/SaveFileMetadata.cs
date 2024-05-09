@@ -26,8 +26,9 @@ public sealed record SaveFileMetadata(SaveFile SAV)
     /// </summary>
     public string? FileFolder { get; private set; }
 
-    private byte[] Footer = Array.Empty<byte>(); // .dsv
-    private byte[] Header = Array.Empty<byte>(); // .gci
+    private byte[] Footer = []; // .dsv
+    private byte[] Header = []; // .gci
+    private ISaveHandler? Handler;
 
     private string BAKSuffix => $" [{SAV.ShortSummary}].bak";
 
@@ -52,20 +53,23 @@ public sealed record SaveFileMetadata(SaveFile SAV)
     /// <returns>Final save file data.</returns>
     public byte[] Finalize(byte[] data, BinaryExportSetting setting)
     {
-        if (Footer.Length > 0 && setting.HasFlag(BinaryExportSetting.IncludeFooter))
-            return ArrayUtil.ConcatAll(data, Footer);
-        if (Header.Length > 0 && setting.HasFlag(BinaryExportSetting.IncludeHeader))
-            return ArrayUtil.ConcatAll(Header, data);
+        if (Footer.Length != 0 && setting.HasFlag(BinaryExportSetting.IncludeFooter))
+            data = [..data, ..Footer];
+        if (Header.Length != 0 && setting.HasFlag(BinaryExportSetting.IncludeHeader))
+            data = [..Header, ..data];
+        if (setting != BinaryExportSetting.None)
+            Handler?.Finalize(data);
         return data;
     }
 
     /// <summary>
     /// Sets the details of any trimmed header and footer arrays to a <see cref="SaveFile"/> object.
     /// </summary>
-    public void SetExtraInfo(byte[] header, byte[] footer)
+    public void SetExtraInfo(byte[] header, byte[] footer, ISaveHandler handler)
     {
         Header = header;
         Footer = footer;
+        Handler = handler;
     }
 
     /// <summary>
@@ -128,7 +132,7 @@ public sealed record SaveFileMetadata(SaveFile SAV)
         var flags = BinaryExportSetting.None;
         if (ext == ".dsv")
             flags |= BinaryExportSetting.IncludeFooter;
-        if (ext == ".gci" || SAV is IGCSaveFile {MemoryCard: null})
+        if (ext == ".gci" || SAV is IGCSaveFile {MemoryCard: null} || ext == ".sram")
             flags |= BinaryExportSetting.IncludeHeader;
         return flags;
     }
